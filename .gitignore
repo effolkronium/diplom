@@ -37,3 +37,5 @@ build/
 .vscode/
 ShadersGen/
 bin/
+resources/
+resources.zip
