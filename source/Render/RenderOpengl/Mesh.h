@@ -13,6 +13,14 @@ struct Vertex {
     glm::vec3 Bitangent;
 };
 
+#define NUM_BONES_PER_VEREX 4
+
+struct VertexBoneData
+{
+	uint32_t IDs[NUM_BONES_PER_VEREX];
+	float Weights[NUM_BONES_PER_VEREX];
+};
+
 struct Texture {
     unsigned int id;
     std::string type;

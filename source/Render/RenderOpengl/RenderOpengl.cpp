@@ -10,6 +10,10 @@
 #include <string>
 #include <iostream>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 #include "Model.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -186,11 +190,34 @@ glm::vec3(0.2f, 0.2f, 1.0f)
 
 		prepareTriangle();
 
+
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+		//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+		// Setup Dear ImGui style
+		ImGui::StyleColorsDark();
+		//ImGui::StyleColorsClassic();
+
+		// Setup Platform/Renderer backends
+		ImGui_ImplGlfw_InitForOpenGL(m_window.get(), true);
+		ImGui_ImplOpenGL3_Init("#version 130");
+
+
         while (!glfwWindowShouldClose(m_window.get()))
         {
 			clear();
 			showFPS();
 			processInput();
+
+			// Start the Dear ImGui frame
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
+
 
 
 			ourShader.use();
@@ -208,18 +235,35 @@ glm::vec3(0.2f, 0.2f, 1.0f)
 
 			// render the loaded model
 			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, glm::vec3(2.0f, -2.0f, 0.0f)); // translate it down so it's at the center of the scene
-			model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-			model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-			model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-			model = glm::scale(model, glm::vec3(0.002f, 0.002f, 0.002f));	// it's a bit too big for our scene, so scale it down
 
-			for (int i = 0; i < 100; ++i)
-			{
-				model = glm::translate(model, glm::vec3(-2.0f + (i * 1.5), -2.0f - (i/10), 0.0f + (i * 1.5))); // translate it down so it's at the center of the scene
-				ourShader.setMat4("model", model);
-				ourModel.Draw(ourShader);
-			}
+			
+			/*ImGui::Begin("My First Tool");
+
+			float x =0 , y = 0, z;
+
+			ImGui::SliderFloat("floatX", &x, -3.0f, 3.0f);
+			ImGui::SliderFloat("floatY", &y, -3.0f, 3.0f);
+			ImGui::SliderFloat("floatZ", &z, -10.0f, 10.0f);
+
+			ImGui::End();*/
+
+
+			model = glm::translate(model, glm::vec3(-0.03, -0.04, 2.8f)); // translate it down so it's at the center of the scene
+			model = glm::scale(model, glm::vec3(0.002f, 0.002f, 0.002f));	// it's a bit too big for our scene, so scale it down
+			model = glm::rotate(model, glm::radians(180.f), glm::vec3(1.0f, 2.5f, 0.f));
+			
+
+
+			ourShader.setMat4("model", model);
+			ourModel.Draw(ourShader);
+
+
+			//for (int i = 0; i < 100; ++i)
+			//{
+			//	model = glm::translate(model, glm::vec3(-2.0f + (i * 1.5), -2.0f - (i/10), 0.0f + (i * 1.5))); // translate it down so it's at the center of the scene
+			//	ourShader.setMat4("model", model);
+			//	ourModel.Draw(ourShader);
+			//}
 
 
 			//glBindVertexArray(VAO1);
@@ -241,6 +285,11 @@ glm::vec3(0.2f, 0.2f, 1.0f)
 
 			// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 			// -------------------------------------------------------------------------------
+
+
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
 			glfwSwapBuffers(m_window.get());
 
             glfwPollEvents();

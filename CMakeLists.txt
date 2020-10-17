@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+if (WIN32)
+	add_definitions(-DUNICODE -D_UNICODE)
+endif()
 
 set(DIPLOM_TOOLS_DIR "${CMAKE_SOURCE_DIR}/tools")
 set(DIPLOM_RESOURCES_ZIP_URL https://api.onedrive.com/v1.0/shares/u!aHR0cHM6Ly8xZHJ2Lm1zL3UvcyFBazltZDlNYkhlUlRocmhzMFZGa2k2U2VIYjZ4bXc_ZT1peFFH/root/content)
@@ -36,6 +39,9 @@ set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER exte
 set_target_properties(assimp PROPERTIES FOLDER external/assimp)
 
 find_package(OpenGL REQUIRED)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/imgui-1.79)
+set_target_properties(imgui PROPERTIES FOLDER external/imgui)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}) 
 

@@ -5,6 +5,8 @@ file(GLOB SHADERS Shaders/*)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${SHADERS})
 
 add_library(${PROJECT_NAME} STATIC 
+			${SHADERS}
+
             Window.h
             Window.cpp
    
@@ -32,6 +34,8 @@ add_library(${PROJECT_NAME} STATIC
             ${CMAKE_SOURCE_DIR}/external/glad_opengl4.6_core/src/glad.c
 )
 
+source_group("Shaders" FILES ${SHADERS})
+
 target_link_libraries(${PROJECT_NAME}
             PUBLIC
                 IRender
@@ -41,6 +45,7 @@ target_link_libraries(${PROJECT_NAME}
                 glm
                 assimp::assimp
                 Utils
+				imgui
 )
 
 target_include_directories(${PROJECT_NAME} 

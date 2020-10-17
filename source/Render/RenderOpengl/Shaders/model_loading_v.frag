@@ -16,6 +16,7 @@ struct DirLight {
     vec3 specular;
 };  
 
+
 struct PointLight {    
     vec3 position;
     

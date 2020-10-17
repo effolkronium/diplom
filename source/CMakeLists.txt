@@ -4,7 +4,10 @@ add_subdirectory(Utils)
 
 add_executable(${CMAKE_PROJECT_NAME} main.cpp)
 
-target_link_libraries(${CMAKE_PROJECT_NAME} 
+set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME})
+
+target_link_libraries(${CMAKE_PROJECT_NAME}
             PRIVATE  
                 RenderVulkan
                 RenderOpengl
