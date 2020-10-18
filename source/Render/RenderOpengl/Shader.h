@@ -21,6 +21,8 @@ private:
     GLuint compileShader(const char* source, GLenum shaderType);
     GLuint linkShader(GLuint vertex, GLuint fragment);
     void reportError(GLuint Id, std::string message);
+
+	GLint getUniformLocation(const std::string& name) const;
 private:
     unsigned int m_programID = 0;
 public:

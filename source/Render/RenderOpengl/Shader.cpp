@@ -33,28 +33,28 @@ void Shader::use()
 void Shader::setBool(const std::string& name, bool value) const
 {
 	assert(m_programID);
-	glUniform1i(glGetUniformLocation(m_programID, name.c_str()), (int)value);
+	glUniform1i(getUniformLocation(name.c_str()), (int)value);
 }
 
 void Shader::setInt(const std::string& name, int value) const
 {
 	assert(m_programID);
-	glUniform1i(glGetUniformLocation(m_programID, name.c_str()), value);
+	glUniform1i(getUniformLocation(name.c_str()), value);
 }
 void Shader::setFloat(const std::string& name, float value) const
 {
 	assert(m_programID);
-	glUniform1f(glGetUniformLocation(m_programID, name.c_str()), value);
+	glUniform1f(getUniformLocation(name.c_str()), value);
 }
 
 void Shader::setMat4(const std::string& name, const glm::mat4& mat)
 {
-	glUniformMatrix4fv(glGetUniformLocation(m_programID, name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+	glUniformMatrix4fv(getUniformLocation(name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
 }
 
 void Shader::setVec3(const std::string& name, const glm::vec3& vec)
 {
-	glUniform3fv(glGetUniformLocation(m_programID, name.c_str()), 1, glm::value_ptr(vec));
+	glUniform3fv(getUniformLocation(name.c_str()), 1, glm::value_ptr(vec));
 }
 
 GLuint Shader::compileShader(const char* source, GLenum shaderType)
@@ -95,4 +95,13 @@ void Shader::reportError(GLuint Id, std::string message)
 	GLchar infoLog[512] = { 0 };
 	glGetShaderInfoLog(Id, sizeof(infoLog), NULL, infoLog);
 	throw std::runtime_error{ "ERROR: " + message + ":" + infoLog };
+}
+
+GLint Shader::getUniformLocation(const std::string & name) const
+{
+	auto res = glGetUniformLocation(m_programID, name.c_str());
+	if (res < 0)
+		throw std::runtime_error{ "glGetUniformLocation for "s + name + " not found" };
+
+	return res;
 }

@@ -104,6 +104,7 @@ Window::Window()
 
 Window::~Window()
 {
+	glfwDestroyWindow(m_window);
 	glfwTerminate();
 }
 
