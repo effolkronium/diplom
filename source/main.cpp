@@ -1,4 +1,5 @@
 #include "RenderOpengl.h"
+#include "RenderVulkan.h"
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -44,9 +45,12 @@ try {
 #ifdef _WIN32
 	SetupCurrentDirectory();
 #endif
+
+	RenderVulkan vulkan;
+	vulkan.startRenderLoop();
 	
-	RenderOpengl opengl;
-	opengl.startRenderLoop();
+	/*RenderOpengl opengl;
+	opengl.startRenderLoop();*/
 }
 catch (const std::exception& ex)
 {

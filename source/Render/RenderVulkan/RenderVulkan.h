@@ -1,11 +1,17 @@
 #pragma once
 
 #include "IRender.h"
+#include <memory>
 
 class RenderVulkan : public IRender
 {
 public:
 	RenderVulkan();
 
+	~RenderVulkan();
+
 	void startRenderLoop() override;
+private:
+	class Impl;
+	std::unique_ptr<Impl> m_impl;
 };
