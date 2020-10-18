@@ -11,6 +11,7 @@ if (WIN32)
 endif()
 
 set(DIPLOM_TOOLS_DIR "${CMAKE_SOURCE_DIR}/tools")
+set(DIPLOM_SHADER_COMPILER "${CMAKE_SOURCE_DIR}/tools/glslc.exe")
 set(DIPLOM_RESOURCES_ZIP_URL https://api.onedrive.com/v1.0/shares/u!aHR0cHM6Ly8xZHJ2Lm1zL3UvcyFBazltZDlNYkhlUlRocmhzMFZGa2k2U2VIYjZ4bXc_ZT1peFFH/root/content)
 
 

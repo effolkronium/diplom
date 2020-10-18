@@ -71,6 +71,7 @@ function(make_includable input_file output_path include_file)
 
     file(APPEND "Shaders.h" "inline constexpr char* const s_${input_file_name_WLE} = \n"
                              "#include \"${output_path}${input_file_name}\"\n;\n")    
+                             
 endfunction(make_includable)
 
 file(REMOVE Shaders.h)
