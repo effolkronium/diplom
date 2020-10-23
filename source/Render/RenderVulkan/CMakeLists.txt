@@ -56,6 +56,9 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} 
             INTERFACE
                 ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_include_directories(${PROJECT_NAME} SYSTEM
 			PRIVATE
 				${CMAKE_SOURCE_DIR}/external/glad_vulkan1.2_core/include
                 ${CMAKE_SOURCE_DIR}/external/

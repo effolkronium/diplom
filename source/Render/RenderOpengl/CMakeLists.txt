@@ -51,12 +51,14 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} 
             INTERFACE
                 ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_include_directories(${PROJECT_NAME} SYSTEM
             PRIVATE
                 ${CMAKE_SOURCE_DIR}/external/glad_opengl4.6_core/include
                 ${CMAKE_SOURCE_DIR}/external/
                 ${CMAKE_SOURCE_DIR}/external/assimp-5.0.1/include
 )
-
 
 # Shaders processing for c++ include
 
