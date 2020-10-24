@@ -39,6 +39,7 @@ add_library(${PROJECT_NAME} STATIC
             RenderVulkan.h
             ../IRender.h
 			ShadersGen/Shaders.h
+            Camera.h
 			${CMAKE_SOURCE_DIR}/external/glad_vulkan1.2_core/src/vulkan.c
 )
 

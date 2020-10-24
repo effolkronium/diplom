@@ -209,13 +209,13 @@ public:
 		static double lastTime = 0;
 		static double nbFrames = 0;
 		double delta = currentTime - lastTime;
-		
+
 		nbFrames++;
 
 		if (delta >= 1.0) { // If last cout was more than 1 sec ago
 			double fps = double(nbFrames) / delta;
 
-			glfwSetWindowTitle(m_window.get(), (std::string( "FPS: " ) + std::to_string(fps)).c_str());
+			glfwSetWindowTitle(m_window.get(), (std::string("FPS: ") + std::to_string(fps)).c_str());
 			lastTime = currentTime;
 
 			nbFrames = 0;

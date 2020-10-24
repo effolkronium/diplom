@@ -46,8 +46,16 @@ try {
 	SetupCurrentDirectory();
 #endif
 
-	RenderVulkan vulkan;
-	vulkan.startRenderLoop();
+	//{
+	//	RenderOpengl vulkan;
+	//	vulkan.startRenderLoop();
+	//}
+
+
+	{
+		RenderVulkan vulkan;
+		vulkan.startRenderLoop();
+	}
 	
 	/*RenderOpengl opengl;
 	opengl.startRenderLoop();*/

@@ -3,17 +3,19 @@
 #include "glad/vulkan.h"
 #include "GLFW/glfw3.h"
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+//#define GLM_FORCE_RADIANS
+//#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <stb_image.h>
 
 #include "ShadersGen/Shaders.h"
 
 #include "Utils.h"
+#include "Camera.h"
 
 #include <iostream>
 #include <vector>
@@ -70,7 +72,6 @@ class RenderVulkan::Impl
 public:
 	struct Vertex {
 		glm::vec3 pos;
-		glm::vec3 color;
 		glm::vec2 texCoord;
 
 		static VkVertexInputBindingDescription getBindingDescription() {
@@ -83,8 +84,8 @@ public:
 			return bindingDescription;
 		}
 
-		static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-			std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+		static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+			std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
 
 			attributeDescriptions[0].binding = 0;
 			attributeDescriptions[0].location = 0;
@@ -93,33 +94,59 @@ public:
 
 			attributeDescriptions[1].binding = 0;
 			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-			attributeDescriptions[2].binding = 0;
-			attributeDescriptions[2].location = 2;
-			attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+			attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
+			attributeDescriptions[1].offset = offsetof(Vertex, texCoord);
 
 			return attributeDescriptions;
 		}
 	};
 
-	const std::vector<Vertex> m_vertices = {
-		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+	 std::vector<Vertex> m_vertices = {
+		{{-0.5f, -0.5f, -0.5f},  {0.0f, 0.0f}},
+		 {{0.5f, -0.5f, -0.5f},  {1.0f, 0.0f}},
+		 {{0.5f,  0.5f, -0.5f},  {1.0f, 1.0f}},
+		 { {0.5f,  0.5f, -0.5f},  {1.0f, 1.0f }},
+		{ {-0.5f,  0.5f, -0.5f},  {0.0f, 1.0f }},
+		{ {-0.5f, -0.5f, -0.5f},  {0.0f, 0.0f }},
 
-		{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-		{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-		{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-		{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
+		{ {-0.5f, -0.5f,  0.5f},  {0.0f, 0.0f }},
+		 { {0.5f, -0.5f,  0.5f},  {1.0f, 0.0f }},
+		 { {0.5f,  0.5f,  0.5f},  {1.0f, 1.0f }},
+		 { {0.5f,  0.5f,  0.5f},  {1.0f, 1.0f }},
+		{ {-0.5f,  0.5f,  0.5f},  {0.0f, 1.0f }},
+		{ {-0.5f, -0.5f,  0.5f},  {0.0f, 0.0f }},
+
+		{ {-0.5f,  0.5f,  0.5f},  {1.0f, 0.0f }},
+		{ {-0.5f,  0.5f, -0.5f},  {1.0f, 1.0f }},
+		{ {-0.5f, -0.5f, -0.5f},  {0.0f, 1.0f }},
+		{ {-0.5f, -0.5f, -0.5f},  {0.0f, 1.0f }},
+		{ {-0.5f, -0.5f,  0.5f},  {0.0f, 0.0f }}, 
+		{ {-0.5f,  0.5f,  0.5f},  {1.0f, 0.0f }},
+
+		 { {0.5f,  0.5f,  0.5f},  {1.0f, 0.0f }},
+		 { {0.5f,  0.5f, -0.5f},  {1.0f, 1.0f }},
+		 { {0.5f, -0.5f, -0.5f},  {0.0f, 1.0f }},
+		 { {0.5f, -0.5f, -0.5f},  {0.0f, 1.0f }},
+		 { {0.5f, -0.5f,  0.5f},  {0.0f, 0.0f }},
+		 { {0.5f,  0.5f,  0.5f},  {1.0f, 0.0f }},
+
+		{ {-0.5f, -0.5f, -0.5f},  {0.0f, 1.0f }},
+		 { {0.5f, -0.5f, -0.5f},  {1.0f, 1.0f }},
+		 { {0.5f, -0.5f,  0.5f},  {1.0f, 0.0f }},
+		 { {0.5f, -0.5f,  0.5f},  {1.0f, 0.0f }},
+		{ {-0.5f, -0.5f,  0.5f},  {0.0f, 0.0f }},
+		{ {-0.5f, -0.5f, -0.5f},  {0.0f, 1.0f }},
+
+		{ {-0.5f,  0.5f, -0.5f},  {0.0f, 1.0f }},
+		 { {0.5f,  0.5f, -0.5f},  {1.0f, 1.0f }},
+		 { {0.5f,  0.5f,  0.5f},  {1.0f, 0.0f }},
+		 { {0.5f,  0.5f,  0.5f},  {1.0f, 0.0f }},
+		{ {-0.5f,  0.5f,  0.5f},  {0.0f, 0.0f }},
+		{ {-0.5f,  0.5f, -0.5f},  {0.0f, 1.0f }}
 	};
 
-	const std::vector<uint16_t> m_indices = {
-		0, 1, 2, 2, 3, 0,
-		4, 5, 6, 6, 7, 4
+	const std::vector<uint32_t> m_indices = {
+		0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,
 	};
 
 	struct UniformBufferObject {
@@ -186,6 +213,7 @@ public:
 
 	VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
+	uint32_t m_mipLevels = 0;
 	VkImage m_textureImage = VK_NULL_HANDLE;
 	VkDeviceMemory m_textureImageMemory = VK_NULL_HANDLE;
 
@@ -207,13 +235,30 @@ public:
 	std::vector<VkDeviceMemory> m_uniformBuffersMemory;	
 	std::vector<void*> m_uniformBuffersMemoryMapping;
 
-	VkImage m_depthImage;
-	VkDeviceMemory m_depthImageMemory;
-	VkImageView m_depthImageView;
+	VkImage m_depthImage = VK_NULL_HANDLE;
+	VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
+	VkImageView m_depthImageView = VK_NULL_HANDLE;
 
+	VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
+	VkImage colorImage = VK_NULL_HANDLE;
+	VkDeviceMemory colorImageMemory = VK_NULL_HANDLE;
+	VkImageView colorImageView = VK_NULL_HANDLE;
+public:
 	bool m_framebufferResized = false;
+	int m_framebufferWidth = g_WIDTH;
+	int m_framebufferHeight = g_HEIGHT;
 
+	Camera camera{ glm::vec3(0.0f, 0.0f, 3.0f) };
+	glm::vec3 cubePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+
+	double m_deltaTime{};
+	double m_currentTime{};
+	double m_lastTime{};
+
+	int m_MAX_FRAMES_IN_FLIGHT = 3;
+	size_t m_currentFrame = 0;
+public:
 	void cleanupSwapChain() {
 		if (m_depthImageView)
 		{
@@ -231,6 +276,24 @@ public:
 		{
 			vkFreeMemory(m_device, m_depthImageMemory, nullptr);
 			m_depthImageMemory = VK_NULL_HANDLE;
+		}
+
+		if (colorImageView)
+		{
+			vkDestroyImageView(m_device, colorImageView, nullptr);
+			colorImageView = VK_NULL_HANDLE;
+		}
+
+		if (colorImage)
+		{
+			vkDestroyImage(m_device, colorImage, nullptr);
+			colorImage = VK_NULL_HANDLE;
+		}
+
+		if (colorImageMemory)
+		{
+			vkFreeMemory(m_device, colorImageMemory, nullptr);
+			colorImageMemory = VK_NULL_HANDLE;
 		}
 
 		for (auto framebuffer : m_swapChainFramebuffers) {
@@ -330,6 +393,7 @@ public:
 		}
 		m_renderFinishedSemaphores.clear();
 		m_imageAvailableSemaphores.clear();
+		m_inFlightFences.clear();
 
 		if (m_vertexBuffer)
 		{
@@ -373,8 +437,11 @@ public:
 			m_instance = VK_NULL_HANDLE;
 		}
 
-		glfwDestroyWindow(m_window);
-		m_window = nullptr;
+		if (m_window)
+		{
+			glfwDestroyWindow(m_window);
+			m_window = nullptr;
+		}
 
 		glfwTerminate();
 	}
@@ -392,6 +459,7 @@ public:
 		createDescriptorSetLayout();
 		createGraphicsPipeline();
 		createCommandPool();
+		createColorResources();
 		createDepthResources();
 		createFramebuffers();
 		createTextureImage();
@@ -406,9 +474,8 @@ public:
 	}
 
 	void recreateSwapChain() {
-		int width = 0, height = 0;
-		while (width == 0 || height == 0) {
-			glfwGetFramebufferSize(m_window, &width, &height);
+		while (m_framebufferWidth == 0 || m_framebufferHeight == 0) {
+			glfwGetFramebufferSize(m_window, &m_framebufferWidth, &m_framebufferHeight);
 			glfwWaitEvents();
 		}
 
@@ -420,6 +487,7 @@ public:
 		createImageViews();
 		createRenderPass();
 		createGraphicsPipeline();
+		createColorResources();
 		createDepthResources();
 		createFramebuffers();
 		createUniformBuffers();
@@ -440,13 +508,34 @@ public:
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-		m_window = glfwCreateWindow(g_WIDTH, g_HEIGHT, "Window Title", NULL, NULL);
+		m_window = glfwCreateWindow(m_framebufferWidth, m_framebufferHeight, "Window Title", NULL, NULL);
 		glfwSetWindowUserPointer(m_window, this);
 
 		glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int width, int heigth) {
 			auto _this = reinterpret_cast<RenderVulkan::Impl*>(glfwGetWindowUserPointer(window));
 			_this->m_framebufferResized = true;
 			_this->drawFrame();
+		});
+
+		//glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+		glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x, double y) {
+			auto _this = reinterpret_cast<RenderVulkan::Impl*>(glfwGetWindowUserPointer(window));
+			static float lastX = 400, lastY = 300;
+			static bool firstMouse = true;
+			if (firstMouse)
+			{
+				lastX = x;
+				lastY = y;
+				firstMouse = false;
+			}
+
+			float xoffset = x - lastX;
+			float yoffset = lastY - y;
+			lastX = x;
+			lastY = y;
+
+			//	_this->camera.ProcessMouseMovement(xoffset, yoffset);
 		});
 	}
 
@@ -560,6 +649,21 @@ public:
 			throw std::runtime_error("failed to create window surface!");
 	}
 
+	VkSampleCountFlagBits getMaxUsableSampleCount() {
+		VkPhysicalDeviceProperties physicalDeviceProperties;
+		vkGetPhysicalDeviceProperties(m_physicalDevice, &physicalDeviceProperties);
+
+		VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+		if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+		if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+		if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+		if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+		if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+		if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+		return VK_SAMPLE_COUNT_1_BIT;
+	}
+
 	void pickPhysicalDevice()
 	{
 		uint32_t deviceCount = 0;
@@ -580,6 +684,7 @@ public:
 				{
 					score = newScore;
 					m_physicalDevice = device;
+					m_msaaSamples = getMaxUsableSampleCount();
 				}
 				break;
 			}
@@ -850,20 +955,20 @@ public:
 		m_swapChainImageViews.resize(m_swapChainImages.size());
 
 		for (uint32_t i = 0; i < m_swapChainImages.size(); i++) {
-			m_swapChainImageViews[i] = createImageView(m_swapChainImages[i], m_swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+			m_swapChainImageViews[i] = createImageView(m_swapChainImages[i], m_swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
 	}
 
 	void createRenderPass() {
 		VkAttachmentDescription colorAttachment{};
 		colorAttachment.format = m_swapChainImageFormat;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.samples = m_msaaSamples;
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 		VkAttachmentReference colorAttachmentRef{};
 		colorAttachmentRef.attachment = 0;
@@ -871,7 +976,7 @@ public:
 
 		VkAttachmentDescription depthAttachment{};
 		depthAttachment.format = findDepthFormat();
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.samples = m_msaaSamples;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -883,11 +988,27 @@ public:
 		depthAttachmentRef.attachment = 1;
 		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		VkAttachmentDescription colorAttachmentResolve{};
+		colorAttachmentResolve.format = m_swapChainImageFormat;
+		colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference colorAttachmentResolveRef{};
+		colorAttachmentResolveRef.attachment = 2;
+		colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+
 		VkSubpassDescription subpass{};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
 		subpass.pDepthStencilAttachment = &depthAttachmentRef;
+		subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
 		VkSubpassDependency dependency{};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -897,7 +1018,7 @@ public:
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-		std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+		std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment, colorAttachmentResolve };
 		VkRenderPassCreateInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -998,7 +1119,7 @@ public:
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizer.cullMode = VK_CULL_MODE_NONE;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -1020,7 +1141,7 @@ public:
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampling.sampleShadingEnable = VK_FALSE;
-		multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+		multisampling.rasterizationSamples = m_msaaSamples;
 		multisampling.minSampleShading = 1.0f; // Optional
 		multisampling.pSampleMask = nullptr; // Optional
 		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
@@ -1099,9 +1220,10 @@ public:
 		m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
 
 		for (size_t i = 0; i < m_swapChainImageViews.size(); i++) {
-			std::array<VkImageView, 2> attachments = {
-				m_swapChainImageViews[i],
-				m_depthImageView
+			std::array<VkImageView, 3> attachments = {
+				colorImageView,
+				m_depthImageView,
+				m_swapChainImageViews[i]
 			};
 
 			VkFramebufferCreateInfo framebufferInfo{};
@@ -1160,32 +1282,42 @@ public:
 		throw std::runtime_error("failed to find supported format!");
 	}
 
+	void createColorResources() {
+		VkFormat colorFormat = m_swapChainImageFormat;
+
+		createImage(m_swapChainExtent.width, m_swapChainExtent.height, 1, m_msaaSamples, colorFormat,
+					VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage, colorImageMemory);
+
+		colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	}
+
 	void createDepthResources() {
 		VkFormat depthFormat = findDepthFormat();
 
-		createImage(m_swapChainExtent.width, m_swapChainExtent.height, depthFormat, 
+		createImage(m_swapChainExtent.width, m_swapChainExtent.height, 1, m_msaaSamples, depthFormat,
 			VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage, m_depthImageMemory);
 
-		m_depthImageView = createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+		m_depthImageView = createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 
-		transitionImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+		transitionImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 	}
 
-	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
 		imageInfo.extent.width = width;
 		imageInfo.extent.height = height;
 		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
+		imageInfo.mipLevels = mipLevels;
 		imageInfo.arrayLayers = 1;
 		imageInfo.format = format;
 		imageInfo.tiling = tiling;
 		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imageInfo.usage = usage;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+		imageInfo.samples = numSamples;
 		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 		if (vkCreateImage(m_device, &imageInfo, nullptr, &image) != VK_SUCCESS) {
@@ -1207,7 +1339,7 @@ public:
 		vkBindImageMemory(m_device, image, imageMemory, 0);
 	}
 
-	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+	void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels) {
 		VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
 		VkImageMemoryBarrier barrier{};
@@ -1232,7 +1364,7 @@ public:
 		}
 
 		barrier.subresourceRange.baseMipLevel = 0;
-		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.levelCount = mipLevels;
 		barrier.subresourceRange.baseArrayLayer = 0;
 		barrier.subresourceRange.layerCount = 1;
 
@@ -1308,9 +1440,99 @@ public:
 		endSingleTimeCommands(commandBuffer);
 	}
 
+	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
+		// Check if image format supports linear blitting
+		VkFormatProperties formatProperties{};
+		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, imageFormat, &formatProperties);
+		if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+			throw std::runtime_error("texture image format does not support linear blitting!");
+		}
+
+
+		VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barrier.image = image;
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+		barrier.subresourceRange.levelCount = 1;
+
+		int32_t mipWidth = texWidth;
+		int32_t mipHeight = texHeight;
+
+		for (uint32_t i = 1; i < mipLevels; i++) {
+			barrier.subresourceRange.baseMipLevel = i - 1;
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			VkImageBlit blit{};
+			blit.srcOffsets[0] = { 0, 0, 0 };
+			blit.srcOffsets[1] = { mipWidth, mipHeight, 1 };
+			blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.srcSubresource.mipLevel = i - 1;
+			blit.srcSubresource.baseArrayLayer = 0;
+			blit.srcSubresource.layerCount = 1;
+
+			blit.dstOffsets[0] = { 0, 0, 0 };
+			blit.dstOffsets[1] = { mipWidth > 1 ? mipWidth / 2 : 1, mipHeight > 1 ? mipHeight / 2 : 1, 1 };
+			blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			blit.dstSubresource.mipLevel = i;
+			blit.dstSubresource.baseArrayLayer = 0;
+			blit.dstSubresource.layerCount = 1;
+
+			vkCmdBlitImage(commandBuffer,
+				image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1, &blit,
+				VK_FILTER_LINEAR);
+
+			barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			vkCmdPipelineBarrier(commandBuffer,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+				0, nullptr,
+				0, nullptr,
+				1, &barrier);
+
+			if (mipWidth > 1) mipWidth /= 2;
+			if (mipHeight > 1) mipHeight /= 2;
+		}
+
+		barrier.subresourceRange.baseMipLevel = mipLevels - 1;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		vkCmdPipelineBarrier(commandBuffer,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier);
+
+		endSingleTimeCommands(commandBuffer);
+	}
+
 	void createTextureImage() {
 		int texWidth{}, texHeight{}, texChannels{};
+		
 		stbi_uc* pixels = stbi_load("resources/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
@@ -1333,20 +1555,22 @@ public:
 		// TODO guard
 		stbi_image_free(pixels);
 
-		createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-					VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+		createImage(texWidth, texHeight, m_mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_textureImage, m_textureImageMemory);
 
-		transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
 		copyBufferToImage(stagingBuffer, m_textureImage, utils::intCast<uint32_t>(texWidth), utils::intCast<uint32_t>(texHeight));
-		transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		//transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+		generateMipmaps(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_mipLevels);
 
 		// TODO guard
 		vkDestroyBuffer(m_device, stagingBuffer, nullptr);
 		vkFreeMemory(m_device, stagingBufferMemory, nullptr);
 	}
 
-	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) {
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		viewInfo.image = image;
@@ -1354,7 +1578,7 @@ public:
 		viewInfo.format = format;
 		viewInfo.subresourceRange.aspectMask = aspectFlags;
 		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = 1;
+		viewInfo.subresourceRange.levelCount = mipLevels;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
 
@@ -1367,7 +1591,7 @@ public:
 	}
 
 	void createTextureImageView() {
-		m_textureImageView = createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+		m_textureImageView = createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_mipLevels);
 	}
 
 	void createTextureSampler() {
@@ -1392,9 +1616,9 @@ public:
 		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
 
 		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
+		samplerInfo.minLod = 0.0f; // Optional
+		samplerInfo.maxLod = static_cast<float>(m_mipLevels);
+		samplerInfo.mipLodBias = 0.0f; // Optional
 
 		if (vkCreateSampler(m_device, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create texture sampler!");
@@ -1642,7 +1866,7 @@ public:
 			VkDeviceSize offsets[] = { 0 };
 
 			vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(m_commandBuffers[i], m_vertexBuffer, sizeof(m_vertices[0]) * m_vertices.size(), VK_INDEX_TYPE_UINT16);
+			vkCmdBindIndexBuffer(m_commandBuffers[i], m_vertexBuffer, sizeof(m_vertices[0]) * m_vertices.size(), VK_INDEX_TYPE_UINT32);
 
 			vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[i], 0, nullptr);
 
@@ -1678,20 +1902,56 @@ public:
 		}
 	}
 
+	void showFPS()
+	{
+		static double lastFpsUpdateTime = 0;
+		static double nbFrames = 0;
+		double delta = m_currentTime - lastFpsUpdateTime;
+
+		nbFrames++;
+
+		if (delta >= 1.0) { // If last fps update was more than 1 sec ago
+			double fps = static_cast<double>(nbFrames) / delta;
+
+			glfwSetWindowTitle(m_window, (std::string("FPS: ") + std::to_string(fps)).c_str());
+			lastFpsUpdateTime = m_currentTime;
+			nbFrames = 0;
+		}
+	}
+
+	void updateDeltaTime()
+	{
+		m_currentTime = glfwGetTime();
+		m_deltaTime = m_currentTime - m_lastTime;
+		m_lastTime = m_currentTime;
+	}
+
+	void processInput()
+	{
+		if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS)
+			camera.ProcessKeyboard(Camera_Movement::FORWARD, m_deltaTime);
+		if (glfwGetKey(m_window, GLFW_KEY_S) == GLFW_PRESS)
+			camera.ProcessKeyboard(Camera_Movement::BACKWARD, m_deltaTime);
+		if (glfwGetKey(m_window, GLFW_KEY_A) == GLFW_PRESS)
+			camera.ProcessKeyboard(Camera_Movement::LEFT, m_deltaTime);
+		if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
+			camera.ProcessKeyboard(Camera_Movement::RIGHT, m_deltaTime);
+	}
+
 	// Rendering loop
 	void startRenderLoop()
 	{
-		while (!glfwWindowShouldClose(m_window)) {
+		while (!glfwWindowShouldClose(m_window)) {		
+			processInput();
+			showFPS();
+
 			glfwPollEvents();
 			drawFrame();
+			updateDeltaTime();
 		}
 
 		vkDeviceWaitIdle(m_device);
 	}
-
-
-	int m_MAX_FRAMES_IN_FLIGHT = 3;
-	size_t m_currentFrame = 0;
 
 	void drawFrame() {
 		while (true)
@@ -1762,19 +2022,16 @@ public:
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = camera.GetViewMatrix();
+		ubo.proj = glm::perspective(glm::radians(45.f), m_framebufferWidth / static_cast<float>(m_framebufferHeight), 0.1f, 200.f);
 
-		ubo.proj = glm::perspective(glm::radians(45.0f), m_swapChainExtent.width / (float)m_swapChainExtent.height, 0.1f, 10.0f);
+		ubo.model = glm::mat4(1.0f);
+		ubo.model = glm::translate(ubo.model, cubePosition);
+		ubo.model = glm::rotate(ubo.model, (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
 
-		// Flip y for vulkan
+		// Fix opengl. TODO!!!!!!!!!!!!!!!!! REMOVE ?????
 		ubo.proj[1][1] *= -1;
 
 		memcpy(m_uniformBuffersMemoryMapping[currentImage], &ubo, sizeof(ubo));
