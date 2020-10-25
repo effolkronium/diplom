@@ -212,6 +212,9 @@ public:
 		std::vector<MeshVertexBuffer> meshVertexBuffers;
 		std::vector<MeshUniformBuffer> meshUniformBuffers;
 		std::vector<VkDescriptorSet> meshDescriptorSet;
+
+		glm::vec3 position{};
+		glm::vec3 scale{};
 	};
 public:
 	GLFWwindow* m_window = nullptr;
@@ -271,7 +274,6 @@ public:
 	int m_framebufferHeight = g_HEIGHT;
 
 	Camera camera{ glm::vec3(0.0f, 0.0f, 3.0f) };
-	glm::vec3 cubePosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
 	double m_deltaTime{};
 	double m_currentTime{};
@@ -444,7 +446,7 @@ public:
 		createDepthResources();
 		createFramebuffers();
 		createDescriptorPool();
-		loadModels();
+		loadModels(prepareModels());
 		createCommandBuffers();
 		createSyncObjects();
 	}
@@ -469,41 +471,61 @@ public:
 		createCommandBuffers();
 	}
 
-	void loadModels()
+	std::vector<VulkanModel> prepareModels()
 	{
-		VulkanModel model;
-		/*model.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
-			VulkanRender::Model::Textures{
-				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
-				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
-			}
-		);*/
+		VulkanModel model1;		
 
-		model.model = std::make_unique<VulkanRender::Model>("resources/shetlandponyamber/ShetlandPonyAmberM.fbx",
+		model1.model = std::make_unique<VulkanRender::Model>("resources/shetlandponyamber/ShetlandPonyAmberM.fbx",
 			VulkanRender::Model::Textures{
 				{"resources/shetlandponyamber/shetlandponyamber.png", VulkanRender::Texture::Type::diffuse },
 
 			}
 		);
 
-		for (size_t i = 0; i < model.model->meshes.size(); ++i)
-		{
-			MeshVertexBuffer meshBuffer{ this };
-			createVertexBuffer(model.model->meshes[i].m_vertices, model.model->meshes[i].m_indices, meshBuffer.m_vertexBuffer, meshBuffer.m_vertexBufferMemory);
-			model.meshVertexBuffers.push_back(std::move(meshBuffer));
+		model1.position = { 0.f, 0.f, 0.f };
+		model1.scale = { 0.01f, 0.01f, 0.01f };
 
-			for (auto& texture : model.model->meshes[i].m_textures)
+
+		VulkanModel model2;
+		model2.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
+			VulkanRender::Model::Textures{
+				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
+				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
+			}
+		);
+
+		model2.position = { 2.f, 0.f, 0.f };
+		model2.scale = { 1.f, 1.f, 1.f };
+
+		std::vector<VulkanModel> models;
+		models.emplace_back(std::move(model1));
+		models.emplace_back(std::move(model2));
+		return models;
+	}
+
+	void loadModels(std::vector<VulkanModel>&& models)
+	{
+		for (VulkanModel& model : models)
+		{
+			for (size_t i = 0; i < model.model->meshes.size(); ++i)
 			{
-				auto findIt = model.meshTextureImages.find(texture.type);
-				if (model.meshTextureImages.end() == findIt)
-					model.meshTextureImages.emplace(texture.type, createTextureImage(texture.path));
+				MeshVertexBuffer meshBuffer{ this };
+				createVertexBuffer(model.model->meshes[i].m_vertices, model.model->meshes[i].m_indices, meshBuffer.m_vertexBuffer, meshBuffer.m_vertexBufferMemory);
+				model.meshVertexBuffers.push_back(std::move(meshBuffer));
+
+				for (auto& texture : model.model->meshes[i].m_textures)
+				{
+					auto findIt = model.meshTextureImages.find(texture.type);
+					if (model.meshTextureImages.end() == findIt)
+						model.meshTextureImages.emplace(texture.type, createTextureImage(texture.path));
+				}
+
+				model.meshUniformBuffers = createMeshUniformBuffers();
+				model.meshDescriptorSet = createDescriptorSets(model.meshUniformBuffers, model.meshTextureImages);
 			}
 
-			model.meshUniformBuffers = createMeshUniformBuffers();
-			model.meshDescriptorSet = createDescriptorSets(model.meshUniformBuffers, model.meshTextureImages);
+			m_models.emplace_back(std::move(model));
 		}
-
-		m_models.emplace_back(std::move(model));
 	}
 
 	void createWindow()
@@ -2107,17 +2129,15 @@ public:
 		ubo.view = camera.GetViewMatrix();
 		ubo.proj = glm::perspective(glm::radians(45.f), m_framebufferWidth / static_cast<float>(m_framebufferHeight), 0.1f, 200.f);
 
-		ubo.model = glm::mat4(1.0f);
-		ubo.model = glm::translate(ubo.model, cubePosition);
-	//	ubo.model = glm::scale(ubo.model, glm::vec3(0.002f, 0.002f, 0.002f));
-		ubo.model = glm::rotate(ubo.model, (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
-
-
 		// Fix opengl. TODO!!!!!!!!!!!!!!!!! REMOVE ?????
 		ubo.proj[1][1] *= -1;
 
 		for (auto& model : m_models)
 		{
+			ubo.model = glm::mat4(1.0f);
+			ubo.model = glm::translate(ubo.model, model.position);
+			ubo.model = glm::scale(ubo.model, model.scale);
+			ubo.model = glm::rotate(ubo.model, (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
 			memcpy(model.meshUniformBuffers[currentImage].uniformBufferMemoryMapping, &ubo, sizeof(ubo));
 		}
 	}
