@@ -203,6 +203,16 @@ public:
 		unique_ptr_device_memory uniformBuffersMemory;
 		void* uniformBufferMemoryMapping;
 	};
+
+	struct VulkanModel
+	{
+		std::unique_ptr<VulkanRender::Model> model;
+
+		std::map<VulkanRender::Texture::Type, MeshTextureImage> meshTextureImages;
+		std::vector<MeshVertexBuffer> meshVertexBuffers;
+		std::vector<MeshUniformBuffer> meshUniformBuffers;
+		std::vector<VkDescriptorSet> meshDescriptorSet;
+	};
 public:
 	GLFWwindow* m_window = nullptr;
 
@@ -238,12 +248,6 @@ public:
 
 	VkCommandPool m_commandPool = VK_NULL_HANDLE;
 
-
-	std::map<VulkanRender::Texture::Type, MeshTextureImage> m_meshTextureImages;
-	std::vector<MeshVertexBuffer> m_meshVertexBuffers;
-	std::vector<MeshUniformBuffer> m_meshUniformBuffers;
-	std::vector<VkDescriptorSet> m_meshDescriptorSet;
-
 	std::vector<VkCommandBuffer> m_commandBuffers;
 
 	std::vector<VkSemaphore> m_imageAvailableSemaphores;
@@ -276,7 +280,7 @@ public:
 	int m_MAX_FRAMES_IN_FLIGHT = 3;
 	size_t m_currentFrame = 0;
 
-	std::unique_ptr<VulkanRender::Model> m_model;
+	std::vector<VulkanModel> m_models;
 public:
 	void cleanupSwapChain() {
 		if (m_depthImageView)
@@ -362,7 +366,12 @@ public:
 			m_descriptorPool = VK_NULL_HANDLE;
 		}
 
-		m_meshTextureImages.clear();
+		for (auto& model : m_models)
+		{
+			model.meshTextureImages.clear();
+			model.meshVertexBuffers.clear();
+			model.meshUniformBuffers.clear();
+		}
 
 		if (m_descriptorSetLayout)
 		{
@@ -378,10 +387,6 @@ public:
 		m_renderFinishedSemaphores.clear();
 		m_imageAvailableSemaphores.clear();
 		m_inFlightFences.clear();
-
-
-		m_meshVertexBuffers.clear();
-		m_meshUniformBuffers.clear();
 
 		if (m_commandPool)
 		{
@@ -466,36 +471,39 @@ public:
 
 	void loadModels()
 	{
-		/*m_model = std::make_unique<VulkanRender::Model>("resources/shetlandponyamber/ShetlandPonyAmberM.fbx",
-			VulkanRender::Model::Textures{
-				{"resources/shetlandponyamber/shetlandponyamber.png", VulkanRender::Texture::Type::diffuse },
-
-			}
-		);*/
-
-		m_model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
+		VulkanModel model;
+		/*model.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
 			VulkanRender::Model::Textures{
 				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
 				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
 			}
+		);*/
+
+		model.model = std::make_unique<VulkanRender::Model>("resources/shetlandponyamber/ShetlandPonyAmberM.fbx",
+			VulkanRender::Model::Textures{
+				{"resources/shetlandponyamber/shetlandponyamber.png", VulkanRender::Texture::Type::diffuse },
+
+			}
 		);
 
-		for (size_t i = 0; i < m_model->meshes.size(); ++i)
+		for (size_t i = 0; i < model.model->meshes.size(); ++i)
 		{
 			MeshVertexBuffer meshBuffer{ this };
-			createVertexBuffer(m_model->meshes[i].m_vertices, m_model->meshes[i].m_indices, meshBuffer.m_vertexBuffer, meshBuffer.m_vertexBufferMemory);
-			m_meshVertexBuffers.push_back(std::move(meshBuffer));
+			createVertexBuffer(model.model->meshes[i].m_vertices, model.model->meshes[i].m_indices, meshBuffer.m_vertexBuffer, meshBuffer.m_vertexBufferMemory);
+			model.meshVertexBuffers.push_back(std::move(meshBuffer));
 
-			for (auto& texture : m_model->meshes[i].m_textures)
+			for (auto& texture : model.model->meshes[i].m_textures)
 			{
-				auto findIt = m_meshTextureImages.find(texture.type);
-				if (m_meshTextureImages.end() == findIt)
-					m_meshTextureImages.emplace(texture.type, createTextureImage(texture.path));
+				auto findIt = model.meshTextureImages.find(texture.type);
+				if (model.meshTextureImages.end() == findIt)
+					model.meshTextureImages.emplace(texture.type, createTextureImage(texture.path));
 			}
 
-			m_meshUniformBuffers = createMeshUniformBuffers();
-			m_meshDescriptorSet = createDescriptorSets(m_meshUniformBuffers, m_meshTextureImages);
+			model.meshUniformBuffers = createMeshUniformBuffers();
+			model.meshDescriptorSet = createDescriptorSets(model.meshUniformBuffers, model.meshTextureImages);
 		}
+
+		m_models.emplace_back(std::move(model));
 	}
 
 	void createWindow()
@@ -1806,9 +1814,12 @@ public:
 			imageInfo.sampler = diffuseTexture.textureSampler.get();
 
 			VkDescriptorImageInfo imageInfoSpecular{};
-			imageInfoSpecular.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfoSpecular.imageView = specularTexture->textureImageView.get();
-			imageInfoSpecular.sampler = specularTexture->textureSampler.get();
+			if (specularTexture)
+			{
+				imageInfoSpecular.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfoSpecular.imageView = specularTexture->textureImageView.get();
+				imageInfoSpecular.sampler = specularTexture->textureSampler.get();
+			}
 
 			std::vector<VkWriteDescriptorSet> descriptorWrites{2};
 
@@ -1924,19 +1935,22 @@ public:
 			vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
 
-			for (size_t j = 0; j < m_model->meshes.size(); ++j)
+			for (auto& model : m_models)
 			{
-				VkBuffer vertexBuffers[] = { m_meshVertexBuffers[j].m_vertexBuffer.get() };
-				VkDeviceSize offsets[] = { 0 };
+				for (size_t j = 0; j < model.model->meshes.size(); ++j)
+				{
+					VkBuffer vertexBuffers[] = { model.meshVertexBuffers[j].m_vertexBuffer.get() };
+					VkDeviceSize offsets[] = { 0 };
 
-				vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-				vkCmdBindIndexBuffer(m_commandBuffers[i], m_meshVertexBuffers[j].m_vertexBuffer.get(), sizeof(m_model->meshes[j].m_vertices[0]) * m_model->meshes[j].m_vertices.size(), VK_INDEX_TYPE_UINT32);
+					vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
+					vkCmdBindIndexBuffer(m_commandBuffers[i], model.meshVertexBuffers[j].m_vertexBuffer.get(),
+										sizeof(model.model->meshes[j].m_vertices[0]) * model.model->meshes[j].m_vertices.size(), VK_INDEX_TYPE_UINT32);
 
-				vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_meshDescriptorSet[i], 0, nullptr);
+					vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &model.meshDescriptorSet[i], 0, nullptr);
 
-				vkCmdDrawIndexed(m_commandBuffers[i], utils::intCast<uint32_t>(m_model->meshes[j].m_indices.size()), 1, 0, 0, 0);
+					vkCmdDrawIndexed(m_commandBuffers[i], utils::intCast<uint32_t>(model.model->meshes[j].m_indices.size()), 1, 0, 0, 0);
+				}
 			}
-
 
 			vkCmdEndRenderPass(m_commandBuffers[i]);
 
@@ -2102,7 +2116,10 @@ public:
 		// Fix opengl. TODO!!!!!!!!!!!!!!!!! REMOVE ?????
 		ubo.proj[1][1] *= -1;
 
-		memcpy(m_meshUniformBuffers[currentImage].uniformBufferMemoryMapping, &ubo, sizeof(ubo));
+		for (auto& model : m_models)
+		{
+			memcpy(model.meshUniformBuffers[currentImage].uniformBufferMemoryMapping, &ubo, sizeof(ubo));
+		}
 	}
 };
 
