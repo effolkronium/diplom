@@ -283,6 +283,7 @@ public:
 	size_t m_currentFrame = 0;
 
 	std::vector<VulkanModel> m_models;
+	uint32_t m_modelsMeshCount = 0;
 public:
 	void cleanupSwapChain() {
 		if (m_depthImageView)
@@ -431,6 +432,7 @@ public:
 
 	Impl()
 	{
+		auto models = prepareModels();
 		createWindow();
 		createInstance();
 		createSurface();
@@ -446,7 +448,7 @@ public:
 		createDepthResources();
 		createFramebuffers();
 		createDescriptorPool();
-		loadModels(prepareModels());
+		loadModels(std::move(models));
 		createCommandBuffers();
 		createSyncObjects();
 	}
@@ -473,7 +475,7 @@ public:
 
 	std::vector<VulkanModel> prepareModels()
 	{
-		VulkanModel model1;		
+		VulkanModel model1;
 
 		model1.model = std::make_unique<VulkanRender::Model>("resources/shetlandponyamber/ShetlandPonyAmberM.fbx",
 			VulkanRender::Model::Textures{
@@ -500,6 +502,15 @@ public:
 		std::vector<VulkanModel> models;
 		models.emplace_back(std::move(model1));
 		models.emplace_back(std::move(model2));
+
+		for (VulkanModel& model : models)
+		{
+			for (size_t i = 0; i < model.model->meshes.size(); ++i)
+			{
+				++m_modelsMeshCount;
+			}
+		}
+
 		return models;
 	}
 
@@ -522,6 +533,8 @@ public:
 
 				model.meshUniformBuffers = createMeshUniformBuffers();
 				model.meshDescriptorSet = createDescriptorSets(model.meshUniformBuffers, model.meshTextureImages);
+
+				++m_modelsMeshCount;
 			}
 
 			m_models.emplace_back(std::move(model));
@@ -1795,7 +1808,7 @@ public:
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(m_swapChainImages.size()) * 4;// *m_model;
+		poolInfo.maxSets = static_cast<uint32_t>(m_swapChainImages.size()) * m_modelsMeshCount;// *m_model;
 
 		if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool))
 			throw std::runtime_error("failed to create descriptor pool!");
