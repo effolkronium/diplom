@@ -229,7 +229,6 @@ public:
 
 	VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
 	VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-	std::vector<VkDescriptorSet> m_descriptorSets;
 
 	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
@@ -238,14 +237,6 @@ public:
 	std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
 	VkCommandPool m_commandPool = VK_NULL_HANDLE;
-
-
-	// DELETE
-	uint32_t m_mipLevels = 0;
-	VkImage m_textureImage = VK_NULL_HANDLE;
-	VkDeviceMemory m_textureImageMemory = VK_NULL_HANDLE;
-	VkImageView m_textureImageView = VK_NULL_HANDLE;
-	VkSampler m_textureSampler = VK_NULL_HANDLE;
 
 
 	std::map<VulkanRender::Texture::Type, MeshTextureImage> m_meshTextureImages;
@@ -260,10 +251,6 @@ public:
 
 	std::vector<VkFence> m_inFlightFences;
 	std::vector<VkFence> m_imagesInFlight;
-
-	std::vector<VkBuffer> m_uniformBuffers;
-	std::vector<VkDeviceMemory> m_uniformBuffersMemory;	
-	std::vector<void*> m_uniformBuffersMemoryMapping;
 
 	VkImage m_depthImage = VK_NULL_HANDLE;
 	VkDeviceMemory m_depthImageMemory = VK_NULL_HANDLE;
@@ -369,47 +356,10 @@ public:
 	{
 		cleanupSwapChain();
 
-		for (size_t i = 0; i < m_swapChainImages.size(); i++) {
-			vkDestroyBuffer(m_device, m_uniformBuffers[i], nullptr);
-			vkFreeMemory(m_device, m_uniformBuffersMemory[i], nullptr);
-		}
-		m_uniformBuffers.clear();
-		m_uniformBuffersMemory.clear();
-
 		if (m_descriptorPool != VK_NULL_HANDLE)
 		{
 			vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
 			m_descriptorPool = VK_NULL_HANDLE;
-		}
-
-		if (m_textureSampler)
-		{
-			vkDestroySampler(m_device, m_textureSampler, nullptr);
-			m_textureSampler = VK_NULL_HANDLE;
-		}
-
-		if (m_textureImageView)
-		{
-			vkDestroyImageView(m_device, m_textureImageView, nullptr);
-			m_textureImageView = VK_NULL_HANDLE;
-		}
-
-		if (m_textureImageView)
-		{
-			vkDestroyImageView(m_device, m_textureImageView, nullptr);
-			m_textureImageView = VK_NULL_HANDLE;
-		}
-
-		if (m_textureImage)
-		{
-			vkDestroyImage(m_device, m_textureImage, nullptr);
-			m_textureImage = VK_NULL_HANDLE;
-		}
-
-		if (m_textureImageMemory)
-		{
-			vkFreeMemory(m_device, m_textureImageMemory, nullptr);
-			m_textureImageMemory = VK_NULL_HANDLE;
 		}
 
 		m_meshTextureImages.clear();
@@ -488,13 +438,8 @@ public:
 		createColorResources();
 		createDepthResources();
 		createFramebuffers();
-		createTextureImage();
-		createTextureImageView();
-		createTextureSampler();
-		createUniformBuffers();
 		createDescriptorPool();
 		loadModels();
-		createDescriptorSets();
 		createCommandBuffers();
 		createSyncObjects();
 	}
@@ -1646,48 +1591,6 @@ public:
 		return textureImage;
 	}
 
-	void createTextureImage() {
-		int texWidth{}, texHeight{}, texChannels{};
-		
-		stbi_uc* pixels = stbi_load("resources/texture.jpg", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-		m_mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
-
-		VkDeviceSize imageSize = texWidth * texHeight * 4;
-
-		if (!pixels) {
-			throw std::runtime_error("failed to load texture image!");
-		}
-
-		VkBuffer stagingBuffer = VK_NULL_HANDLE;
-		VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
-
-		createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			stagingBuffer, stagingBufferMemory);
-
-		void* data = nullptr;
-		vkMapMemory(m_device, stagingBufferMemory, 0, imageSize, 0, &data);
-		memcpy(data, pixels, utils::intCast<size_t>(imageSize));
-		vkUnmapMemory(m_device, stagingBufferMemory);
-
-		// TODO guard
-		stbi_image_free(pixels);
-
-		createImage(texWidth, texHeight, m_mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-					VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_textureImage, m_textureImageMemory);
-
-		transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_mipLevels);
-		copyBufferToImage(stagingBuffer, m_textureImage, utils::intCast<uint32_t>(texWidth), utils::intCast<uint32_t>(texHeight));
-		//transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-		generateMipmaps(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, m_mipLevels);
-
-		// TODO guard
-		vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-		vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-	}
-
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -1710,10 +1613,6 @@ public:
 
 	VkImageView createTextureImageView(VkImage image, uint32_t mipLevels) {
 		return createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-	}
-
-	void createTextureImageView() {
-		m_textureImageView = createImageView(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, m_mipLevels);
 	}
 
 	VkSampler createTextureSampler(uint32_t mipLevels) {
@@ -1748,37 +1647,6 @@ public:
 		}
 
 		return textureSampler;
-	}
-
-	void createTextureSampler() {
-		VkSamplerCreateInfo samplerInfo{};
-		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-
-		// TODO sync with opengl
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = 16.0f;
-
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.minLod = 0.0f; // Optional
-		samplerInfo.maxLod = static_cast<float>(m_mipLevels);
-		samplerInfo.mipLodBias = 0.0f; // Optional
-
-		if (vkCreateSampler(m_device, &samplerInfo, nullptr, &m_textureSampler) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create texture sampler!");
-		}	
 	}
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
@@ -1886,35 +1754,6 @@ public:
 		vkFreeMemory(m_device, stagingBufferMemory, nullptr);
 	}
 
-	//// TODO delete
-	//void createVertexBuffer() {
-	//	VkDeviceSize vertexSize = sizeof(m_vertices[0]) * m_vertices.size();
-	//	VkDeviceSize indexSize = sizeof(m_indices[0]) * m_indices.size();
-
-	//	VkDeviceSize bufferSize = vertexSize + indexSize;
-
-	//	VkBuffer stagingBuffer = VK_NULL_HANDLE;
-	//	VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
-	//	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	//				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-	//				stagingBuffer, stagingBufferMemory);
-
-	//	unsigned char* data;
-	//	vkMapMemory(m_device, stagingBufferMemory, 0, bufferSize, 0, reinterpret_cast<void**>(&data));
-	//	memcpy(data, m_vertices.data(), vertexSize);
-	//	memcpy(data + vertexSize, m_indices.data(), indexSize);
-	//	vkUnmapMemory(m_device, stagingBufferMemory);
-
-	//	createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-	//				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_vertexBuffer, m_vertexBufferMemory);
-
-	//	copyBuffer(stagingBuffer, m_vertexBuffer, bufferSize);
-
-	//	// TODO guard
-	//	vkDestroyBuffer(m_device, stagingBuffer, nullptr);
-	//	vkFreeMemory(m_device, stagingBufferMemory, nullptr);
-	//}
-
 	void createDescriptorPool() {
 		std::array<VkDescriptorPoolSize, 2> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2007,51 +1846,6 @@ public:
 		return descriptorSets;
 	}
 
-	void createDescriptorSets() {
-		std::vector<VkDescriptorSetLayout> layouts(m_swapChainImages.size(), m_descriptorSetLayout);
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = m_descriptorPool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(m_swapChainImages.size());
-		allocInfo.pSetLayouts = layouts.data();
-
-		m_descriptorSets.resize(m_swapChainImages.size());
-		if (vkAllocateDescriptorSets(m_device, &allocInfo, m_descriptorSets.data()))
-			throw std::runtime_error("failed to allocate descriptor sets!");
-
-		for (size_t i = 0; i < m_swapChainImages.size(); i++) {
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = m_uniformBuffers[i];
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = m_textureImageView;
-			imageInfo.sampler = m_textureSampler;
-
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = m_descriptorSets[i];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = m_descriptorSets[i];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		}
-	}
-
 	std::vector<MeshUniformBuffer> createMeshUniformBuffers() {
 		std::vector<MeshUniformBuffer> uniformBuffers;
 
@@ -2074,26 +1868,6 @@ public:
 		}
 
 		return uniformBuffers;
-	}
-
-	void createUniformBuffers() {
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-		m_uniformBuffers.resize(m_swapChainImages.size());
-		m_uniformBuffersMemory.resize(m_swapChainImages.size());
-
-		for (size_t i = 0; i < m_swapChainImages.size(); i++) {
-			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				m_uniformBuffers[i], m_uniformBuffersMemory[i]);
-		}
-
-		for (size_t i = 0; i < m_uniformBuffersMemory.size(); ++i)
-		{
-			void* data = nullptr;
-			vkMapMemory(m_device, m_uniformBuffersMemory[i], 0, sizeof(UniformBufferObject), 0, &data);
-			m_uniformBuffersMemoryMapping.push_back(data);
-		}
 	}
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
@@ -2328,7 +2102,6 @@ public:
 		// Fix opengl. TODO!!!!!!!!!!!!!!!!! REMOVE ?????
 		ubo.proj[1][1] *= -1;
 
-		memcpy(m_uniformBuffersMemoryMapping[currentImage], &ubo, sizeof(ubo));
 		memcpy(m_meshUniformBuffers[currentImage].uniformBufferMemoryMapping, &ubo, sizeof(ubo));
 	}
 };
