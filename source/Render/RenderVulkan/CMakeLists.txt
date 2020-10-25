@@ -34,12 +34,20 @@ endforeach()
 
 add_library(${PROJECT_NAME} STATIC 
             ${SHADERS}
+            ShadersGen/Shaders.h
 
+            Camera.h
+
+            ../IRender.h
             RenderVulkan.cpp
             RenderVulkan.h
-            ../IRender.h
-			ShadersGen/Shaders.h
-            Camera.h
+
+            Mesh.h
+            Mesh.cpp
+
+            Model.h
+            Model.cpp
+
 			${CMAKE_SOURCE_DIR}/external/glad_vulkan1.2_core/src/vulkan.c
 )
 
@@ -57,11 +65,11 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} 
             INTERFACE
                 ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_include_directories(${PROJECT_NAME} SYSTEM
-			PRIVATE
-				${CMAKE_SOURCE_DIR}/external/glad_vulkan1.2_core/include
+            PRIVATE
+		        ${CMAKE_SOURCE_DIR}/external/glad_vulkan1.2_core/include
                 ${CMAKE_SOURCE_DIR}/external/
                 ${CMAKE_SOURCE_DIR}/external/assimp-5.0.1/include
+                ${CMAKE_BINARY_DIR}/external/assimp-5.0.1/include
 )
+
+message("DEBUG ${CMAKE_BINARY_DIR}/external/assimp-5.0.1/include")

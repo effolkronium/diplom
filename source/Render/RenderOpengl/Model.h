@@ -25,7 +25,6 @@ private:
 	std::vector<std::filesystem::path> m_textures;
 
     std::vector<Mesh> meshes;
-    std::string directory;
     std::vector<Texture> textures_loaded;
 
 	std::map<std::string, std::uint32_t> m_BoneMapping; // maps a bone name to its index

@@ -79,6 +79,7 @@ public:
 	void startRenderLoop()
 	{
 		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_CULL_FACE);
 
 		Shader ourShader(s_model_loading, s_model_loading_v);
 
