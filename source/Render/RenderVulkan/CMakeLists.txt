@@ -36,17 +36,8 @@ add_library(${PROJECT_NAME} STATIC
             ${SHADERS}
             ShadersGen/Shaders.h
 
-            Camera.h
-
-            ../IRender.h
             RenderVulkan.cpp
             RenderVulkan.h
-
-            Mesh.h
-            Mesh.cpp
-
-            Model.h
-            Model.cpp
 
 			${CMAKE_SOURCE_DIR}/external/glad_vulkan1.2_core/src/vulkan.c
 )
@@ -55,7 +46,7 @@ source_group("Shaders" FILES ${SHADERS})
 
 target_link_libraries(${PROJECT_NAME}
             PUBLIC
-                IRender
+                Render
             PRIVATE
                 glfw
                 glm

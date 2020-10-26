@@ -27,8 +27,6 @@ add_library(${PROJECT_NAME} STATIC
             Model.h
             Model.cpp
 
-            ../IRender.h
-
             ${SHADERS}
 
             ${CMAKE_SOURCE_DIR}/external/glad_opengl4.6_core/src/glad.c
@@ -38,7 +36,7 @@ source_group("Shaders" FILES ${SHADERS})
 
 target_link_libraries(${PROJECT_NAME}
             PUBLIC
-                IRender
+                Render
             PRIVATE
                 OpenGL::GL
                 glfw

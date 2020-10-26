@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IRender.h"
+#include "Render.h"
 #include <memory>
 
 class RenderOpengl : public IRender
