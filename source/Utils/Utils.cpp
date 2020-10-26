@@ -1,5 +1,6 @@
 #include "Utils.h"
 #include <fstream>
+#include <cassert>
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -23,5 +24,57 @@ namespace utils
 		t.read(&buffer[0], size);
 
 		return buffer;
+	}
+
+	ThreadPool::~ThreadPool()
+	{
+		{
+			std::unique_lock<std::mutex> lock(queue_mutex);
+			stop = true;
+		}
+		condition.notify_all();
+		for (std::thread& worker : workers)
+			worker.join();
+	}
+
+	int ThreadPool::threadIndex()
+	{
+		auto findIt = threadIds.find(std::this_thread::get_id());
+		if (findIt == threadIds.end())
+			throw std::runtime_error{ "Invalid thread for threadIndex" };
+
+		return findIt->second;
+	}
+
+	ThreadPool::ThreadPool(size_t threads)
+		: stop(false)
+	{
+		assert(threads);
+		for (size_t i = 0; i < threads; ++i)
+			workers.emplace_back(
+				[this, i]
+				{
+					{
+						std::unique_lock<std::mutex> lock(queue_mutex);
+						threadIds.emplace(std::this_thread::get_id(), i);
+					}
+					for (;;)
+					{
+						std::function<void()> task;
+
+						{
+							std::unique_lock<std::mutex> lock(this->queue_mutex);
+							this->condition.wait(lock,
+								[this] { return this->stop || !this->tasks.empty(); });
+							if (this->stop && this->tasks.empty())
+								return;
+							task = std::move(this->tasks.front());
+							this->tasks.pop();
+						}
+
+						task();
+					}
+				}
+				);
 	}
 }

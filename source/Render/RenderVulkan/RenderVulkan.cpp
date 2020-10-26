@@ -33,6 +33,7 @@
 #include <thread>
 
 namespace fs = std::filesystem;
+using namespace std::literals;
 
 #ifdef NDEBUG
 constexpr bool enableValidationLayers = false;
@@ -85,9 +86,9 @@ public:
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions()
+	static std::array<VkVertexInputAttributeDescription, 7> getAttributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+		std::array<VkVertexInputAttributeDescription, 7> attributeDescriptions{};
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -104,13 +105,38 @@ public:
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(VulkanRender::Vertex, TexCoords);
 
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_UINT;
+		attributeDescriptions[3].offset = offsetof(VulkanRender::Vertex, BoneIDs);
+
+		attributeDescriptions[4].binding = 0;
+		attributeDescriptions[4].location = 4;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_UINT;
+		attributeDescriptions[4].offset = offsetof(VulkanRender::Vertex, BoneIDs) + sizeof(VulkanRender::Vertex::BoneIDs) / 2;
+
+		attributeDescriptions[5].binding = 0;
+		attributeDescriptions[5].location = 5;
+		attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		attributeDescriptions[5].offset = offsetof(VulkanRender::Vertex, Weights);
+
+		attributeDescriptions[6].binding = 0;
+		attributeDescriptions[6].location = 6;
+		attributeDescriptions[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		attributeDescriptions[6].offset = offsetof(VulkanRender::Vertex, Weights) + sizeof(VulkanRender::Vertex::Weights) / 2;
+
 		return attributeDescriptions;
 	}
 
 	struct UniformBufferObject {
+		constexpr static inline size_t MaxBoneTransforms = 100;
+		alignas(16) glm::mat4 BoneTransform[MaxBoneTransforms];
+		alignas(16) glm::vec3 viewPos;
+	};
+
+	struct PushConstantBufferObject {
+		alignas(16) glm::mat4 PVM;
 		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
 	};
 public:
 	std::function<void(VkShaderModule)> m_shaderModuleDeleter =
@@ -142,6 +168,13 @@ public:
 		if (sampler)
 			vkDestroySampler(m_device, sampler, nullptr);
 	};
+
+	std::function<void(VkCommandPool)> m_commandPoolDeleter = [this](VkCommandPool commandPool) {
+		if (commandPool)
+			vkDestroyCommandPool(m_device, commandPool, nullptr);
+	};
+
+	using CommandBufferDeleter = std::function<void(VkCommandBuffer)>;
 	
 	using unique_ptr_shared_module = std::unique_ptr<std::remove_pointer_t<VkShaderModule>, decltype(m_shaderModuleDeleter)>;
 	using unique_ptr_buffer = std::unique_ptr< std::remove_pointer_t<VkBuffer>, decltype(m_bufferDeleter)>;
@@ -149,6 +182,8 @@ public:
 	using unique_ptr_image = std::unique_ptr< std::remove_pointer_t<VkImage>, decltype(m_imageDeleter)>;
 	using unique_ptr_image_view = std::unique_ptr< std::remove_pointer_t<VkImageView>, decltype(m_imageViewDeleter)>;
 	using unique_ptr_sampler = std::unique_ptr< std::remove_pointer_t<VkSampler>, decltype(m_samplerDeleter)>;
+	using unique_ptr_command_pool = std::unique_ptr< std::remove_pointer_t<VkCommandPool>, decltype(m_commandPoolDeleter)>;
+	using unique_ptr_command_buffer = std::unique_ptr< std::remove_pointer_t<VkCommandBuffer>, CommandBufferDeleter>;
 public:
 	struct QueueFamilyIndices {
 		std::optional<uint32_t> graphicsFamily;
@@ -215,6 +250,30 @@ public:
 
 		glm::vec3 position{};
 		glm::vec3 scale{};
+
+		std::vector<PushConstantBufferObject> pushConstant{};
+		std::vector<UniformBufferObject> uniformBuffer{};
+	};
+
+	struct ThreadData {
+		ThreadData(RenderVulkan::Impl* self) :
+			m_this{ self },
+			commandPool{ nullptr, self->m_commandPoolDeleter }
+		{		
+		}
+
+		ThreadData(ThreadData&&) = default;
+
+		~ThreadData()
+		{
+			commandBuffers.clear();
+		}
+	
+		RenderVulkan::Impl* m_this;
+		unique_ptr_command_pool commandPool;
+
+		std::vector<std::vector<unique_ptr_command_buffer>> commandBuffers;
+		int usedCommandBuffers = 0;
 	};
 public:
 	GLFWwindow* m_window = nullptr;
@@ -284,6 +343,10 @@ public:
 
 	std::vector<VulkanModel> m_models;
 	uint32_t m_modelsMeshCount = 0;
+
+	int m_coreNumber = std::thread::hardware_concurrency();
+	utils::ThreadPool m_threadPool{ m_coreNumber };
+	std::vector<ThreadData> m_threadData;
 public:
 	void cleanupSwapChain() {
 		if (m_depthImageView)
@@ -326,6 +389,8 @@ public:
 			vkDestroyFramebuffer(m_device, framebuffer, nullptr);
 		}
 		m_swapChainFramebuffers.clear();
+
+		m_threadData.clear();
 
 		vkFreeCommandBuffers(m_device, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 		m_commandBuffers.clear();
@@ -432,6 +497,14 @@ public:
 
 	Impl()
 	{
+		/*auto w1 = m_threadPool.enqueue([this]() { std::this_thread::sleep_for(1s);  std::cout << m_threadPool.threadIndex() << std::endl;  });
+		auto w2 = m_threadPool.enqueue([this]() {  std::this_thread::sleep_for(2s); std::cout << m_threadPool.threadIndex() << std::endl;  });
+		auto w3 = m_threadPool.enqueue([this]() { std::this_thread::sleep_for(3s); std::cout << m_threadPool.threadIndex() << std::endl; });
+
+		w1.get();
+		w2.get();
+		w3.get();*/
+
 		auto models = prepareModels();
 		createWindow();
 		createInstance();
@@ -448,6 +521,7 @@ public:
 		createDepthResources();
 		createFramebuffers();
 		createDescriptorPool();
+		initThreadData();
 		loadModels(std::move(models));
 		createCommandBuffers();
 		createSyncObjects();
@@ -499,9 +573,35 @@ public:
 		model2.position = { 2.f, 0.f, 0.f };
 		model2.scale = { 1.f, 1.f, 1.f };
 
+
+		VulkanModel model3;
+		model3.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
+			VulkanRender::Model::Textures{
+				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
+				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
+			}
+		);
+
+		model3.position = { 4.f, 0.f, 0.f };
+		model3.scale = { 1.f, 1.f, 1.f };
+
+
+		VulkanModel model4;
+		model4.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
+			VulkanRender::Model::Textures{
+				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
+				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
+			}
+		);
+
+		model4.position = { 6.f, 0.f, 0.f };
+		model4.scale = { 1.f, 1.f, 1.f };
+
 		std::vector<VulkanModel> models;
 		models.emplace_back(std::move(model1));
 		models.emplace_back(std::move(model2));
+		models.emplace_back(std::move(model3));
+		models.emplace_back(std::move(model4));
 
 		for (VulkanModel& model : models)
 		{
@@ -531,11 +631,13 @@ public:
 						model.meshTextureImages.emplace(texture.type, createTextureImage(texture.path));
 				}
 
-				model.meshUniformBuffers = createMeshUniformBuffers();
-				model.meshDescriptorSet = createDescriptorSets(model.meshUniformBuffers, model.meshTextureImages);
-
 				++m_modelsMeshCount;
 			}
+
+			model.meshUniformBuffers = createMeshUniformBuffers();
+			model.meshDescriptorSet = createDescriptorSets(model.meshUniformBuffers, model.meshTextureImages);
+			model.pushConstant.resize(m_swapChainFramebuffers.size());
+			model.uniformBuffer.resize(m_swapChainFramebuffers.size());
 
 			m_models.emplace_back(std::move(model));
 		}
@@ -1225,8 +1327,14 @@ public:
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 1;
 		pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
-		pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
-		pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
+
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(PushConstantBufferObject);
+
+		pipelineLayoutInfo.pushConstantRangeCount = 1; // Optional
+		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange; // Optional
 
 		if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout))
 			throw std::runtime_error("failed to create pipeline layout!");
@@ -1292,6 +1400,26 @@ public:
 		}
 	}
 
+	unique_ptr_command_pool createCommandPoolPtr() {
+		unique_ptr_command_pool commandPoolPtr{ nullptr, m_commandPoolDeleter };
+		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
+
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+
+		// TODO
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Optional
+
+		VkCommandPool commandPool = VK_NULL_HANDLE;
+		if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &commandPool))
+			throw std::runtime_error("failed to create command pool!");
+
+		commandPoolPtr.reset(commandPool);
+
+		return commandPoolPtr;
+	}
+
 	void createCommandPool() {
 		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(m_physicalDevice);
 
@@ -1300,7 +1428,7 @@ public:
 		poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
 		// TODO
-		poolInfo.flags = 0; // Optional
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // Optional
 
 		if (vkCreateCommandPool(m_device, &poolInfo, nullptr, &m_commandPool))
 			throw std::runtime_error("failed to create command pool!");
@@ -1885,6 +2013,17 @@ public:
 				descriptorWrites[2].descriptorCount = 1;
 				descriptorWrites[2].pImageInfo = &imageInfoSpecular;
 			}
+			else
+			{
+				descriptorWrites.push_back({});
+				descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[2].dstSet = descriptorSets[i];
+				descriptorWrites[2].dstBinding = 2;
+				descriptorWrites[2].dstArrayElement = 0;
+				descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				descriptorWrites[2].descriptorCount = 1;
+				descriptorWrites[2].pImageInfo = &imageInfo;
+			}
 
 			vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -1927,6 +2066,25 @@ public:
 		}
 
 		throw std::runtime_error("failed to find suitable memory type!");
+	}
+
+	unique_ptr_command_buffer createCommandBufferPtrSecondary(VkCommandPool commandPool, CommandBufferDeleter cmdBufferDeleter)
+	{
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = commandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
+		allocInfo.commandBufferCount = 1;
+
+		VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+		if (vkAllocateCommandBuffers(m_device, &allocInfo, &commandBuffer))
+			throw std::runtime_error("failed to allocate command buffers!");
+
+		unique_ptr_command_buffer commadBufferPtr{ nullptr, cmdBufferDeleter };
+
+		commadBufferPtr.reset(commandBuffer);
+
+		return commadBufferPtr;
 	}
 
 	void createCommandBuffers()
@@ -2053,6 +2211,176 @@ public:
 			camera.ProcessKeyboard(Camera_Movement::RIGHT, m_deltaTime);
 	}
 
+	void initThreadData()
+	{
+		for (int i = 0; i < m_coreNumber; ++i)
+		{
+			ThreadData threadData{ this };
+			threadData.commandPool = createCommandPoolPtr();
+			m_threadData.emplace_back(std::move(threadData));
+
+			for (size_t j = 0; j < m_swapChainFramebuffers.size(); ++j)
+			{
+				m_threadData[i].commandBuffers.push_back({});
+				
+			}
+		}
+	}
+
+	bool updateModelPushConstants(uint32_t currentImage, VulkanModel& vulkanModel)
+	{
+		glm::mat4 view = camera.GetViewMatrix();
+		glm::mat4 proj = glm::perspective(glm::radians(45.f), m_framebufferWidth / static_cast<float>(m_framebufferHeight), 0.1f, 200.f);
+
+		// Fix opengl. TODO!!!!!!!!!!!!!!!!! REMOVE ?????
+		proj[1][1] *= -1;
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, vulkanModel.position);
+		model = glm::scale(model, vulkanModel.scale);
+	//	model = glm::rotate(model, static_cast<float>(m_currentTime), glm::vec3(1.0f, 0.3f, 0.5f));
+
+		glm::mat4 PVM = proj * view * model;
+
+		vulkanModel.pushConstant[currentImage].PVM = PVM;
+		vulkanModel.pushConstant[currentImage].model = model;
+
+		return true;
+	}
+
+	void updateUniformBuffer(uint32_t currentImage, VulkanModel& vulkanMode) {
+		std::vector<aiMatrix4x4> boneTransforms;
+		vulkanMode.model->BoneTransform(m_currentTime, boneTransforms);
+
+		for (size_t i = 0; i < boneTransforms.size(); ++i)
+			vulkanMode.uniformBuffer[currentImage].BoneTransform[i] = VulkanRender::Assimp2Glm(boneTransforms[i]);
+
+		std::memcpy(vulkanMode.meshUniformBuffers[currentImage].uniformBufferMemoryMapping,
+					vulkanMode.uniformBuffer[currentImage].BoneTransform,
+					boneTransforms.size() * sizeof(boneTransforms[0]));
+
+		std::memcpy((char*)vulkanMode.meshUniformBuffers[currentImage].uniformBufferMemoryMapping + offsetof(UniformBufferObject, viewPos),
+					&camera.Position, sizeof(camera.Position));
+	}
+
+	void updateSecondaryCommandBuffers(uint32_t currentImage)
+	{
+		for (auto& threadData : m_threadData)
+			threadData.usedCommandBuffers = 0;
+
+		VkCommandBufferInheritanceInfo cmdBufferInheritanceInfo{};
+		cmdBufferInheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+		cmdBufferInheritanceInfo.renderPass = m_renderPass;
+		cmdBufferInheritanceInfo.framebuffer = m_swapChainFramebuffers[currentImage];
+		
+		std::vector<std::future<void>> futures;
+
+		for (size_t i = 0; i < m_models.size(); ++i)
+		{
+			auto renderTask = m_threadPool.enqueue([&](VulkanModel* vulkanModel) {
+				int threadId = m_threadPool.threadIndex();
+				auto& threadData = m_threadData[threadId];
+				auto& commandBuffers = threadData.commandBuffers[currentImage];
+
+				++threadData.usedCommandBuffers;
+				int currentCommandBufferIndex = threadData.usedCommandBuffers - 1;
+
+				if (commandBuffers.size() < threadData.usedCommandBuffers)
+				{
+					commandBuffers.emplace_back(createCommandBufferPtrSecondary(threadData.commandPool.get(), [this, wtf = &m_threadData[threadId]](VkCommandBuffer buffer) {
+						if (buffer && wtf->commandPool)
+							vkFreeCommandBuffers(m_device, wtf->commandPool.get(), 1, &buffer);
+					}));
+				}
+
+				auto& commandBuffer = commandBuffers[currentCommandBufferIndex];
+
+				VkCommandBufferBeginInfo beginInfo{};
+				beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT; // Optional
+				beginInfo.pInheritanceInfo = &cmdBufferInheritanceInfo; // Optional
+
+				if (vkBeginCommandBuffer(commandBuffer.get(), &beginInfo))
+					throw std::runtime_error("failed to begin recording command buffer!");
+
+				vkCmdBindPipeline(commandBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+
+				if (updateModelPushConstants(currentImage, *vulkanModel))
+					vkCmdPushConstants(commandBuffer.get(), m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstantBufferObject), &vulkanModel->pushConstant[currentImage]);
+
+				updateUniformBuffer(currentImage, *vulkanModel);
+
+				for (size_t j = 0; j < vulkanModel->model->meshes.size(); ++j)
+				{
+					VkBuffer vertexBuffers[] = { vulkanModel->meshVertexBuffers[j].m_vertexBuffer.get() };
+					VkDeviceSize offsets[] = { 0 };
+
+					vkCmdBindVertexBuffers(commandBuffer.get(), 0, 1, vertexBuffers, offsets);
+					vkCmdBindIndexBuffer(commandBuffer.get(), vulkanModel->meshVertexBuffers[j].m_vertexBuffer.get(),
+						sizeof(vulkanModel->model->meshes[j].m_vertices[0]) * vulkanModel->model->meshes[j].m_vertices.size(), VK_INDEX_TYPE_UINT32);
+
+					vkCmdBindDescriptorSets(commandBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &vulkanModel->meshDescriptorSet[j], 0, nullptr);
+
+					vkCmdDrawIndexed(commandBuffer.get(), utils::intCast<uint32_t>(vulkanModel->model->meshes[j].m_indices.size()), 1, 0, 0, 0);
+				}
+
+				if (vkEndCommandBuffer(commandBuffer.get()))
+					throw std::runtime_error("failed to record command buffer!");
+
+
+				}, &m_models[i]);
+
+			futures.emplace_back(std::move(renderTask));
+		}
+
+		for (auto& task : futures)
+		{
+			task.get();
+		}
+	}
+
+	void updateCommandBuffers(uint32_t currentImage)
+	{
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = 0; // Optional
+		beginInfo.pInheritanceInfo = nullptr; // Optional
+
+		if (vkBeginCommandBuffer(m_commandBuffers[currentImage], &beginInfo))
+			throw std::runtime_error("failed to begin recording command buffer!");
+
+		VkRenderPassBeginInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = m_renderPass;
+		renderPassInfo.framebuffer = m_swapChainFramebuffers[currentImage];
+		renderPassInfo.renderArea.offset = { 0, 0 };
+		renderPassInfo.renderArea.extent = m_swapChainExtent;
+
+		updateSecondaryCommandBuffers(currentImage);
+
+		std::array<VkClearValue, 2> clearValues{};
+		clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clearValues[1].depthStencil = { 1.0f, 0 };
+
+		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+		renderPassInfo.pClearValues = clearValues.data();
+
+		vkCmdBeginRenderPass(m_commandBuffers[currentImage], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
+		std::vector<VkCommandBuffer> commandBuffers;
+		commandBuffers.reserve(m_models.size());
+
+		for (auto& threadData : m_threadData)
+			for(size_t i = 0; i < threadData.usedCommandBuffers; ++i)
+				commandBuffers.push_back(threadData.commandBuffers[currentImage][i].get());
+
+		vkCmdExecuteCommands(m_commandBuffers[currentImage], commandBuffers.size(), commandBuffers.data());
+
+		vkCmdEndRenderPass(m_commandBuffers[currentImage]);
+
+		if (vkEndCommandBuffer(m_commandBuffers[currentImage]))
+			throw std::runtime_error("failed to record command buffer!");
+	}
+
 	// Rendering loop
 	void startRenderLoop()
 	{
@@ -2088,7 +2416,7 @@ public:
 
 			m_imagesInFlight[imageIndex] = m_inFlightFences[m_currentFrame];
 
-			updateUniformBuffer(imageIndex);
+			updateCommandBuffers(imageIndex);
 
 			VkSubmitInfo submitInfo{};
 			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -2133,25 +2461,6 @@ public:
 
 			m_currentFrame = (m_currentFrame + 1) % m_MAX_FRAMES_IN_FLIGHT;
 			break;
-		}
-	}
-
-	void updateUniformBuffer(uint32_t currentImage) {
-		UniformBufferObject ubo{};
-
-		ubo.view = camera.GetViewMatrix();
-		ubo.proj = glm::perspective(glm::radians(45.f), m_framebufferWidth / static_cast<float>(m_framebufferHeight), 0.1f, 200.f);
-
-		// Fix opengl. TODO!!!!!!!!!!!!!!!!! REMOVE ?????
-		ubo.proj[1][1] *= -1;
-
-		for (auto& model : m_models)
-		{
-			ubo.model = glm::mat4(1.0f);
-			ubo.model = glm::translate(ubo.model, model.position);
-			ubo.model = glm::scale(ubo.model, model.scale);
-			ubo.model = glm::rotate(ubo.model, (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
-			memcpy(model.meshUniformBuffers[currentImage].uniformBufferMemoryMapping, &ubo, sizeof(ubo));
 		}
 	}
 };

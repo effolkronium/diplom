@@ -9,9 +9,13 @@
 namespace VulkanRender
 {
 	struct Vertex {
+        inline static constexpr size_t c_maxBonePerVertexCount = 8;
+
 		glm::vec3 Position{};
 		glm::vec3 Normal{};
 		glm::vec2 TexCoords{};
+        std::uint32_t BoneIDs[c_maxBonePerVertexCount] = { 0 };
+        float Weights[c_maxBonePerVertexCount] = { 0 };
 	};
 
     struct Texture {
