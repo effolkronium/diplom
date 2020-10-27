@@ -28,7 +28,7 @@ namespace VulkanRender
     {
     public:
         using Textures = std::vector<std::pair<std::filesystem::path, Texture::Type>>;
-        Model(std::filesystem::path path, std::vector<std::pair<std::filesystem::path, Texture::Type>> textures);
+        Model(std::filesystem::path path, std::vector<std::pair<std::filesystem::path, Texture::Type>> textures, int animationNumber);
         
         void BoneTransform(float TimeInSeconds, std::vector<aiMatrix4x4>& Transforms);
 
@@ -57,5 +57,6 @@ namespace VulkanRender
         int FindPosition(float AnimationTime, const aiNodeAnim* pNodeAnim);
     private:
         std::vector<std::pair<std::filesystem::path, Texture::Type>> m_textures;
+        int m_animationNumber = 0;
     };
 }

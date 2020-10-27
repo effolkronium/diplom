@@ -29,8 +29,8 @@ namespace VulkanRender
 		}
 	}
 
-    Model::Model(std::filesystem::path path, std::vector<std::pair<std::filesystem::path, Texture::Type>> textures):
-        m_textures{ std::move(textures) }
+    Model::Model(std::filesystem::path path, std::vector<std::pair<std::filesystem::path, Texture::Type>> textures, int animationNumber):
+        m_textures{ std::move(textures) }, m_animationNumber{ animationNumber }
     {
 		static std::map<std::string, std::unique_ptr<Assimp::Importer>> imports;
 
@@ -179,9 +179,9 @@ namespace VulkanRender
 	{
 		aiMatrix4x4 Identity;
 
-		float TicksPerSecond = (float)(m_import->GetScene()->mAnimations[0]->mTicksPerSecond != 0 ? m_import->GetScene()->mAnimations[0]->mTicksPerSecond : 25.0f);
+		float TicksPerSecond = (float)(m_import->GetScene()->mAnimations[m_animationNumber]->mTicksPerSecond != 0 ? m_import->GetScene()->mAnimations[m_animationNumber]->mTicksPerSecond : 25.0f);
 		float TimeInTicks = TimeInSeconds * TicksPerSecond;
-		float AnimationTime = fmod(TimeInTicks, (float)m_import->GetScene()->mAnimations[0]->mDuration);
+		float AnimationTime = fmod(TimeInTicks, (float)m_import->GetScene()->mAnimations[m_animationNumber]->mDuration);
 
 		ReadNodeHeirarchy(AnimationTime, m_import->GetScene()->mRootNode, Identity);
 
@@ -228,7 +228,7 @@ namespace VulkanRender
 	{
 		std::string NodeName(pNode->mName.data);
 
-		const aiAnimation* pAnimation = m_import->GetScene()->mAnimations[0];
+		const aiAnimation* pAnimation = m_import->GetScene()->mAnimations[m_animationNumber];
 
 		aiMatrix4x4 NodeTransformation(pNode->mTransformation);
 

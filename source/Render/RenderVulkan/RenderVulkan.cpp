@@ -554,7 +554,8 @@ public:
 			model1.model = std::make_unique<VulkanRender::Model>(modelInfo.modelPath,
 				VulkanRender::Model::Textures{
 					{modelInfo.texturePath, VulkanRender::Texture::Type::diffuse },
-				}
+				},
+				modelInfo.animationNumber
 			);
 
 			model1.position = { modelInfo.posX, modelInfo.posY, modelInfo.posZ };

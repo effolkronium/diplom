@@ -51,7 +51,7 @@ try {
 #endif
 
 	
-	RenderVulkan openglRender;
+	RenderOpengl openglRender;
 	Scene scene{ openglRender };
 
 	scene.run();

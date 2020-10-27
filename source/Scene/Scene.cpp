@@ -1,14 +1,48 @@
 #include "Scene.h"
 #include <array>
+#include "glm/glm/glm.hpp"
 
 namespace
 {
+	int fixedRundom[]{
+		3,	3,	2,	3,
+		3,	3,	1,	3,
+		0,	3,	0,	3,
+		2,	3,	0,	3,
+		3,	3,	1,	0,
+		3,	0,	3,	1,
+		2,	1,	3,	0,
+		1,	3,	2,	3,
+		3,	3,	1,	2,
+		3,	3,	2,	2,
+		3,	1,	0,	1,
+		3,	3,	3,	2,
+		3,	0,	1,	3,
+		3,	3,	0,	3,
+		0,	3,	0,	2,
+		3,	2,	2,	0,
+		3,	0,	0,	2,
+		3,	3,	0,	1,
+		3,	3,	2,	3,
+		1,	0,	3,	3,
+		1,	3,	1,	1,
+		2,	0,	2,	3,
+		3,	3,	1,	0,
+		3,	3,	1,	0,
+		1,	0,	0,	1,
+		1,	0,	2,	1,
+		0,	1,	0,	3,
+		1,	3,	0,	1,
+		1,	0,	0,	2,
+		3,	1,	2,	1,
+	};
+
 	enum ModelType
 	{
-		Chimp,
-		Bird,
-		Crocodile,
-		Pony,
+		Chimp, // 1
+		Bird, // 3
+		Crocodile, // 1
+		Pony, // 8
 	};
 
 
@@ -19,12 +53,14 @@ namespace
 
 			modelChimp.modelPath = "resources/chimp/chimp.FBX";
 			modelChimp.texturePath = "resources/chimp/chimp_diffuse.jpg";
+			modelChimp.maxAnimationNumber = 1;
 
 
 			ModelInfo modelBird;
 
 			modelBird.modelPath = "resources/bird/Bird.FBX";
 			modelBird.texturePath = "resources/bird/Fogel_Mat_Diffuse_Color.png";
+			modelBird.maxAnimationNumber = 3;
 
 			modelBird.scaleX = 0.0025f;
 			modelBird.scaleY = 0.0025f;
@@ -39,12 +75,14 @@ namespace
 			modelCrocodile.scaleY = 0.015f;
 			modelCrocodile.scaleZ = 0.015f;
 
+			modelCrocodile.maxAnimationNumber = 1;
+
 
 			ModelInfo modelPony;
 
 			modelPony.modelPath = "resources/shetlandponyamber/ShetlandPonyAmberM.fbx";
 			modelPony.texturePath = "resources/shetlandponyamber/shetlandponyamber.png";
-
+			modelPony.maxAnimationNumber = 8;
 
 			modelPony.scaleX = 0.015f;
 			modelPony.scaleY = 0.015f;
@@ -62,27 +100,36 @@ namespace
 	}
 }
 
+#define M_PI       3.14159265358979323846   // pi
 
 Scene::Scene(IRender& render) :
 	m_render{ render }
 {
-	int i = 0;
-	for (auto modelInfo : getModelInfos())
+
+	auto modelInfo = getModelInfo(ModelType::Pony);
+
+
+
+	//modelInfo.animationNumber = 2;
+
+	//m_modelInfos.push_back(modelInfo);
+
+
+	for (int j = 0; j < 10; ++j)
 	{
-		++i;
+		for (int i = 0; i < 10; ++i)
+		{
+			auto modelInfo = getModelInfo(ModelType(fixedRundom[(i+1)*(j+1)]));
 
-		
-		modelInfo.posX += 2 * i;
-		
-		m_modelInfos.push_back(modelInfo);
-	}
+			int yOffset = i / 5;
 
+			modelInfo.posY += yOffset * 4;
+			modelInfo.posX += (i - (yOffset * 5)) * (i % 2 == 0 ? 4 : 2);
+			modelInfo.posZ -= j * 4;
+			modelInfo.animationNumber = ((i + 1) * (j + 1)) % modelInfo.maxAnimationNumber;
 
-	for (int i = 0; i < 100; ++i)
-	{
-		auto modelInfo = getModelInfo(ModelType((i % 4) ));
-		modelInfo.posX += 2 * i;
-		m_modelInfos.push_back(modelInfo);
+			m_modelInfos.push_back(modelInfo);
+		}
 	}
 }
 

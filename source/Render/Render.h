@@ -10,6 +10,9 @@ struct ModelInfo
 
 	std::string modelPath;
 	std::string texturePath;
+
+	int animationNumber = 0;
+	int maxAnimationNumber = 0;
 };
 
 
