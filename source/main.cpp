@@ -40,22 +40,27 @@ namespace
 #endif
 }
 
+#include <thread>
+
 int main()
 try {
 #ifdef _WIN32
 	SetupCurrentDirectory();
 #endif
 
-	//{
-	//	RenderOpengl vulkan;
-	//	vulkan.startRenderLoop();
-	//}
+	std::thread t{ [] {
+		RenderOpengl vulkan;
+		vulkan.startRenderLoop();
+	} };
 
+	t.join();
 
-	{
+	std::thread t2{ [] {
 		RenderVulkan vulkan;
 		vulkan.startRenderLoop();
-	}
+	} };
+
+	t2.join();
 	
 	/*RenderOpengl opengl;
 	opengl.startRenderLoop();*/

@@ -18,8 +18,7 @@ out vec4 BoneIDs;
 out vec4 Weights;
 
 uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
+uniform mat4 PVM;
 
 #define MAX_BONES 100
 uniform mat4 gBones[MAX_BONES];
@@ -38,7 +37,7 @@ void main()
 
 	vec4 PosL = BoneTransform * vec4(aPos, 1.0);
 
-    gl_Position = projection * view * model * PosL;
+    gl_Position = PVM * PosL;
     FragPos = vec3(model * vec4(aPos, 1.0));
 
 	vec4 NormalL   = BoneTransform * vec4(aNormal, 0.0);

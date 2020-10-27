@@ -62,5 +62,5 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir)
     vec3 ambient  = light.ambient  * vec3(texture(texSampler, TexCoords));
     vec3 diffuse  = light.diffuse  * diff * vec3(texture(texSampler, TexCoords));
     vec3 specular = light.specular * spec * vec3(texture(texSpecular, TexCoords));
-    return (ambient + diffuse + specular);
+    return (ambient + diffuse);
 }

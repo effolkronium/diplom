@@ -338,7 +338,7 @@ public:
 	double m_currentTime{};
 	double m_lastTime{};
 
-	int m_MAX_FRAMES_IN_FLIGHT = 3;
+	int m_MAX_FRAMES_IN_FLIGHT = 2;
 	size_t m_currentFrame = 0;
 
 	std::vector<VulkanModel> m_models;
@@ -492,7 +492,7 @@ public:
 			m_window = nullptr;
 		}
 
-		glfwTerminate();
+		//glfwTerminate();
 	}
 
 	Impl()
@@ -1095,7 +1095,7 @@ public:
 		m_swapChainImages.resize(imageCount);
 		vkGetSwapchainImagesKHR(m_device, m_swapChain, &imageCount, m_swapChainImages.data());
 
-		m_MAX_FRAMES_IN_FLIGHT = utils::intCast<int>(m_swapChainImages.size());
+		//m_MAX_FRAMES_IN_FLIGHT = utils::intCast<int>(m_swapChainImages.size());
 	}
 
 	void createImageViews() {
@@ -2117,7 +2117,7 @@ public:
 			renderPassInfo.renderArea.extent = m_swapChainExtent;
 
 			std::array<VkClearValue, 2> clearValues{};
-			clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+			clearValues[0].color = { 0.2f, 0.3f, 0.3f, 1.0f };
 			clearValues[1].depthStencil = { 1.0f, 0 };
 
 			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -2186,7 +2186,7 @@ public:
 		if (delta >= 1.0) { // If last fps update was more than 1 sec ago
 			double fps = static_cast<double>(nbFrames) / delta;
 
-			glfwSetWindowTitle(m_window, (std::string("FPS: ") + std::to_string(fps)).c_str());
+			glfwSetWindowTitle(m_window, (std::string("VULAKN FPS: ") + std::to_string(fps)).c_str());
 			lastFpsUpdateTime = m_currentTime;
 			nbFrames = 0;
 		}
@@ -2358,7 +2358,7 @@ public:
 		updateSecondaryCommandBuffers(currentImage);
 
 		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clearValues[0].color = VkClearColorValue{ 1.0f, 1.0f, 1.0f, 1.0f };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());

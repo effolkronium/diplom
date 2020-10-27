@@ -6,9 +6,6 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${SHADERS})
 
 add_library(${PROJECT_NAME} STATIC 
 			${SHADERS}
-
-            Window.h
-            Window.cpp
    
             RenderOpengl.cpp
             RenderOpengl.h
@@ -16,16 +13,7 @@ add_library(${PROJECT_NAME} STATIC
             Shader.cpp
             Shader.h
 
-            Camera.cpp
-            Camera.h
-
             Shaders.h
-
-            Mesh.h
-            Mesh.cpp
-
-            Model.h
-            Model.cpp
 
             ${SHADERS}
 
