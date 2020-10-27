@@ -1,5 +1,7 @@
 #include "RenderOpengl.h"
 #include "RenderVulkan.h"
+#include "Scene.h"
+
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -48,19 +50,11 @@ try {
 	SetupCurrentDirectory();
 #endif
 
-	std::thread t{ [] {
-		RenderOpengl vulkan;
-		vulkan.startRenderLoop();
-	} };
+	
+	RenderVulkan openglRender;
+	Scene scene{ openglRender };
 
-	t.join();
-
-	std::thread t2{ [] {
-		RenderVulkan vulkan;
-		vulkan.startRenderLoop();
-	} };
-
-	t2.join();
+	scene.run();
 	
 	/*RenderOpengl opengl;
 	opengl.startRenderLoop();*/

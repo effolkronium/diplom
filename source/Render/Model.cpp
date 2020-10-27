@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include "stb_image.h"
 #include <filesystem>
+#include "stb_image.h"
 
 using namespace std::literals;
 namespace fs = std::filesystem;
@@ -31,10 +32,31 @@ namespace VulkanRender
     Model::Model(std::filesystem::path path, std::vector<std::pair<std::filesystem::path, Texture::Type>> textures):
         m_textures{ std::move(textures) }
     {
-        const aiScene* scene = m_import.ReadFile(path.string(), aiProcess_Triangulate | aiProcess_FlipUVs);
+		static std::map<std::string, std::unique_ptr<Assimp::Importer>> imports;
 
-        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-            throw std::runtime_error{ "ERROR::ASSIMP::"s + m_import.GetErrorString() };
+		auto findIt = imports.find(path.string());
+
+		const aiScene* scene = nullptr;
+		if(findIt == imports.end())
+		{
+			auto importer = std::make_unique<Assimp::Importer>();
+
+			scene = importer->ReadFile(path.string(), aiProcess_Triangulate | aiProcess_FlipUVs);
+
+			if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+				throw std::runtime_error{ "ERROR::ASSIMP::"s + importer->GetErrorString() };
+
+
+			m_import = importer.get();
+			imports.emplace(path.string(), std::move(importer));
+		}
+		else
+		{
+			scene = findIt->second->GetScene();
+			m_import = findIt->second.get();
+		}
+
+		
 
         processNode(scene->mRootNode, scene);
     }
@@ -157,11 +179,11 @@ namespace VulkanRender
 	{
 		aiMatrix4x4 Identity;
 
-		float TicksPerSecond = (float)(m_import.GetScene()->mAnimations[0]->mTicksPerSecond != 0 ? m_import.GetScene()->mAnimations[0]->mTicksPerSecond : 25.0f);
+		float TicksPerSecond = (float)(m_import->GetScene()->mAnimations[0]->mTicksPerSecond != 0 ? m_import->GetScene()->mAnimations[0]->mTicksPerSecond : 25.0f);
 		float TimeInTicks = TimeInSeconds * TicksPerSecond;
-		float AnimationTime = fmod(TimeInTicks, (float)m_import.GetScene()->mAnimations[0]->mDuration);
+		float AnimationTime = fmod(TimeInTicks, (float)m_import->GetScene()->mAnimations[0]->mDuration);
 
-		ReadNodeHeirarchy(AnimationTime, m_import.GetScene()->mRootNode, Identity);
+		ReadNodeHeirarchy(AnimationTime, m_import->GetScene()->mRootNode, Identity);
 
 		Transforms.resize(m_NumBones);
 
@@ -170,11 +192,43 @@ namespace VulkanRender
 		}
 	}
 
+	unsigned char* Model::loadTexture(const std::string& path, int& width, int& height)
+	{
+		struct LoadedDataInfo
+		{
+			unsigned char* data = nullptr;
+			int width{}, height{};
+		};
+
+		static std::map<std::string, LoadedDataInfo> loadedData;
+
+		auto findIt = loadedData.find(path);
+		if (findIt == loadedData.end())
+		{
+			int channels{};
+			unsigned char* data = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+			LoadedDataInfo info;
+			
+			info.data = data;
+			info.height = height;
+			info.width = width;
+
+			loadedData.emplace(path, info);
+			return data;
+		}
+
+
+		width = findIt->second.width;
+		height = findIt->second.height;
+		return findIt->second.data;
+	}
+
 	void Model::ReadNodeHeirarchy(float AnimationTime, const aiNode* pNode, const aiMatrix4x4& ParentTransform)
 	{
 		std::string NodeName(pNode->mName.data);
 
-		const aiAnimation* pAnimation = m_import.GetScene()->mAnimations[0];
+		const aiAnimation* pAnimation = m_import->GetScene()->mAnimations[0];
 
 		aiMatrix4x4 NodeTransformation(pNode->mTransformation);
 

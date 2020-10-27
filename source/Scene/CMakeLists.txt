@@ -7,7 +7,6 @@ add_library(${PROJECT_NAME} STATIC
 
 target_link_libraries(${PROJECT_NAME}
             PRIVATE
-                SceneSimple
                 Render
 )
 

@@ -5,7 +5,9 @@ class Scene
 public:
 	Scene(IRender& render);
 
-	virtual void run() = 0;
+	void run();
 private:
 	IRender& m_render;
+
+	std::vector<ModelInfo> m_modelInfos;
 };

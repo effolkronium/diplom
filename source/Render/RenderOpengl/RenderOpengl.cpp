@@ -51,13 +51,6 @@ public:
 public:
 	Impl()
 	{
-		initWindow();
-
-		glEnable(GL_MULTISAMPLE);
-		glEnable(GL_FRAMEBUFFER_SRGB);
-
-		auto models = prepareModels();
-		loadModels(std::move(models));
 	}
 
 	static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -69,6 +62,17 @@ public:
 
 	~Impl()
 	{
+	}
+
+	void init(std::vector<ModelInfo> modelInfos)
+	{
+		initWindow();
+
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_FRAMEBUFFER_SRGB);
+
+		auto models = prepareModels(std::move(modelInfos));
+		loadModels(std::move(models));
 	}
 
 	void initWindow()
@@ -121,60 +125,25 @@ public:
 		});
 	}
 
-	std::vector<OpenglModel> prepareModels()
+	std::vector<OpenglModel> prepareModels(std::vector<ModelInfo> modelInfos)
 	{
-		OpenglModel model1;
-
-		model1.model = std::make_unique<VulkanRender::Model>("resources/shetlandponyamber/ShetlandPonyAmberM.fbx",
-			VulkanRender::Model::Textures{
-				{"resources/shetlandponyamber/shetlandponyamber.png", VulkanRender::Texture::Type::diffuse },
-			}
-		);
-
-		model1.position = { 0.f, 0.f, 0.f };
-		model1.scale = { 0.01f, 0.01f, 0.01f };
-
-
-		OpenglModel model2;
-		model2.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
-			VulkanRender::Model::Textures{
-				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
-				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
-			}
-		);
-
-		model2.position = { 2.f, 0.f, 0.f };
-		model2.scale = { 1.f, 1.f, 1.f };
-
-
-		OpenglModel model3;
-		model3.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
-			VulkanRender::Model::Textures{
-				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
-				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
-			}
-		);
-
-		model3.position = { 4.f, 0.f, 0.f };
-		model3.scale = { 1.f, 1.f, 1.f };
-
-
-		OpenglModel model4;
-		model4.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
-			VulkanRender::Model::Textures{
-				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
-				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
-			}
-		);
-
-		model4.position = { 6.f, 0.f, 0.f };
-		model4.scale = { 1.f, 1.f, 1.f };
-
 		std::vector<OpenglModel> models;
-		models.emplace_back(std::move(model1));
-		models.emplace_back(std::move(model2));
-		models.emplace_back(std::move(model3));
-		models.emplace_back(std::move(model4));
+
+		for (auto& modelInfo : modelInfos)
+		{
+			OpenglModel model1;
+
+			model1.model = std::make_unique<VulkanRender::Model>(modelInfo.modelPath,
+				VulkanRender::Model::Textures{
+					{modelInfo.texturePath, VulkanRender::Texture::Type::diffuse },
+				}
+			);
+
+			model1.position = { modelInfo.posX, modelInfo.posY, modelInfo.posZ };
+			model1.scale = { modelInfo.scaleX, modelInfo.scaleY, modelInfo.scaleZ };
+
+			models.emplace_back(std::move(model1));
+		}
 
 		for (OpenglModel& model : models)
 		{
@@ -259,7 +228,9 @@ public:
 		glGenTextures(1, &textureID);
 
 		int width, height, nrComponents;
-		unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrComponents, STBI_rgb_alpha);
+
+		unsigned char* data = VulkanRender::Model::loadTexture(path.c_str(), width, height);
+
 		if (!data)
 			throw std::runtime_error{ "Texture failed to load at path: "s + path };
 
@@ -272,13 +243,13 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		stbi_image_free(data);
-
 		return textureID;
 	}
 
-	void startRenderLoop()
-	{
+	void startRenderLoop(std::vector<ModelInfo> modelInfos)
+	{		
+		init(std::move(modelInfos));
+
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 
@@ -408,7 +379,7 @@ RenderOpengl::RenderOpengl()
 
 RenderOpengl::~RenderOpengl() = default;
 
-void RenderOpengl::startRenderLoop()
+void RenderOpengl::startRenderLoop(std::vector<ModelInfo> modelInfos)
 {
-	m_impl->startRenderLoop();
+	m_impl->startRenderLoop(std::move(modelInfos));
 }

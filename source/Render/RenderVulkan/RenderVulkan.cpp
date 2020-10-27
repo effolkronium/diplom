@@ -497,15 +497,11 @@ public:
 
 	Impl()
 	{
-		/*auto w1 = m_threadPool.enqueue([this]() { std::this_thread::sleep_for(1s);  std::cout << m_threadPool.threadIndex() << std::endl;  });
-		auto w2 = m_threadPool.enqueue([this]() {  std::this_thread::sleep_for(2s); std::cout << m_threadPool.threadIndex() << std::endl;  });
-		auto w3 = m_threadPool.enqueue([this]() { std::this_thread::sleep_for(3s); std::cout << m_threadPool.threadIndex() << std::endl; });
+	}
 
-		w1.get();
-		w2.get();
-		w3.get();*/
-
-		auto models = prepareModels();
+	void init(std::vector<ModelInfo> modelInfos)
+	{
+		auto models = prepareModels(std::move(modelInfos));
 		createWindow();
 		createInstance();
 		createSurface();
@@ -547,61 +543,25 @@ public:
 		createCommandBuffers();
 	}
 
-	std::vector<VulkanModel> prepareModels()
+	std::vector<VulkanModel> prepareModels(std::vector<ModelInfo> modelInfos)
 	{
-		VulkanModel model1;
-
-		model1.model = std::make_unique<VulkanRender::Model>("resources/shetlandponyamber/ShetlandPonyAmberM.fbx",
-			VulkanRender::Model::Textures{
-				{"resources/shetlandponyamber/shetlandponyamber.png", VulkanRender::Texture::Type::diffuse },
-
-			}
-		);
-
-		model1.position = { 0.f, 0.f, 0.f };
-		model1.scale = { 0.01f, 0.01f, 0.01f };
-
-
-		VulkanModel model2;
-		model2.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
-			VulkanRender::Model::Textures{
-				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
-				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
-			}
-		);
-
-		model2.position = { 2.f, 0.f, 0.f };
-		model2.scale = { 1.f, 1.f, 1.f };
-
-
-		VulkanModel model3;
-		model3.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
-			VulkanRender::Model::Textures{
-				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
-				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
-			}
-		);
-
-		model3.position = { 4.f, 0.f, 0.f };
-		model3.scale = { 1.f, 1.f, 1.f };
-
-
-		VulkanModel model4;
-		model4.model = std::make_unique<VulkanRender::Model>("resources/chimp/chimp.FBX",
-			VulkanRender::Model::Textures{
-				{"resources/chimp/chimp_diffuse.jpg", VulkanRender::Texture::Type::diffuse },
-				{"resources/chimp/chimp_spec.jpg", VulkanRender::Texture::Type::specular },
-			}
-		);
-
-		model4.position = { 6.f, 0.f, 0.f };
-		model4.scale = { 1.f, 1.f, 1.f };
-
 		std::vector<VulkanModel> models;
-		models.emplace_back(std::move(model1));
-		models.emplace_back(std::move(model2));
-		models.emplace_back(std::move(model3));
-		models.emplace_back(std::move(model4));
+
+		for (auto& modelInfo : modelInfos)
+		{
+			VulkanModel model1;
+
+			model1.model = std::make_unique<VulkanRender::Model>(modelInfo.modelPath,
+				VulkanRender::Model::Textures{
+					{modelInfo.texturePath, VulkanRender::Texture::Type::diffuse },
+				}
+			);
+
+			model1.position = { modelInfo.posX, modelInfo.posY, modelInfo.posZ };
+			model1.scale = { modelInfo.scaleX, modelInfo.scaleY, modelInfo.scaleZ };
+
+			models.emplace_back(std::move(model1));
+		}
 
 		for (VulkanModel& model : models)
 		{
@@ -1712,8 +1672,9 @@ public:
 		MeshTextureImage textureImage{ this };
 		int texWidth{}, texHeight{}, texChannels{};
 
-		stbi_uc* pixels = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		stbi_uc* pixels = VulkanRender::Model::loadTexture(path.string(), texWidth, texHeight);
 		textureImage.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
 
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
@@ -1732,10 +1693,6 @@ public:
 		vkMapMemory(m_device, stagingBufferMemory, 0, imageSize, 0, &data);
 		memcpy(data, pixels, utils::intCast<size_t>(imageSize));
 		vkUnmapMemory(m_device, stagingBufferMemory);
-
-		// TODO guard
-		stbi_image_free(pixels);
-
 
 		VkImage image = VK_NULL_HANDLE;
 		VkDeviceMemory imageMemory = VK_NULL_HANDLE;
@@ -2318,7 +2275,7 @@ public:
 					vkCmdBindIndexBuffer(commandBuffer.get(), vulkanModel->meshVertexBuffers[j].m_vertexBuffer.get(),
 						sizeof(vulkanModel->model->meshes[j].m_vertices[0]) * vulkanModel->model->meshes[j].m_vertices.size(), VK_INDEX_TYPE_UINT32);
 
-					vkCmdBindDescriptorSets(commandBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &vulkanModel->meshDescriptorSet[j], 0, nullptr);
+					vkCmdBindDescriptorSets(commandBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &vulkanModel->meshDescriptorSet[currentImage], 0, nullptr);
 
 					vkCmdDrawIndexed(commandBuffer.get(), utils::intCast<uint32_t>(vulkanModel->model->meshes[j].m_indices.size()), 1, 0, 0, 0);
 				}
@@ -2382,8 +2339,10 @@ public:
 	}
 
 	// Rendering loop
-	void startRenderLoop()
+	void startRenderLoop(std::vector<ModelInfo> modelInfos)
 	{
+		init(std::move(modelInfos));
+
 		while (!glfwWindowShouldClose(m_window)) {		
 			processInput();
 			showFPS();
@@ -2473,7 +2432,7 @@ RenderVulkan::RenderVulkan()
 
 RenderVulkan::~RenderVulkan() = default;
 
-void RenderVulkan::startRenderLoop()
+void RenderVulkan::startRenderLoop(std::vector<ModelInfo> modelInfos)
 {
-	m_impl->startRenderLoop();
+	m_impl->startRenderLoop(std::move(modelInfos));
 }

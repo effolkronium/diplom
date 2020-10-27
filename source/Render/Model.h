@@ -32,9 +32,11 @@ namespace VulkanRender
         
         void BoneTransform(float TimeInSeconds, std::vector<aiMatrix4x4>& Transforms);
 
+        static unsigned char* loadTexture(const std::string& path, int& width, int& height);
+
         std::vector<Mesh> meshes;
     private:
-        Assimp::Importer m_import;
+        Assimp::Importer* m_import;
 
         std::map<std::string, std::uint32_t> m_BoneMapping; // maps a bone name to its index
         std::uint32_t m_NumBones = 0;
