@@ -1,5 +1,6 @@
 #include "RenderOpengl.h"
 #include "RenderVulkan.h"
+#include "RenderGUI.h"
 #include "Scene.h"
 
 #include <iostream>
@@ -50,14 +51,29 @@ try {
 	SetupCurrentDirectory();
 #endif
 
-	
-	RenderOpengl openglRender;
-	Scene scene{ openglRender };
 
-	scene.run();
-	
-	/*RenderOpengl opengl;
-	opengl.startRenderLoop();*/
+	while (true)
+	{
+		RenderGUI gui;
+		RenderGuiData guiData = gui.startRenderLoop();
+
+		if (guiData.renderType == RenderGuiData::RenderType::OpenGL)
+		{
+			RenderOpengl openglRender;
+			Scene scene{ openglRender };
+			scene.run();
+		}
+		else if (guiData.renderType == RenderGuiData::RenderType::Vulkan)
+		{
+			RenderVulkan vulkanRender;
+			Scene scene{ vulkanRender };
+			scene.run();
+		}
+		else
+		{
+			break;
+		}
+	}
 }
 catch (const std::exception& ex)
 {

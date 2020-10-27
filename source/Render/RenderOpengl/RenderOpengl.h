@@ -3,6 +3,7 @@
 #include "Render.h"
 #include <memory>
 
+
 class RenderOpengl : public IRender
 {
 public:

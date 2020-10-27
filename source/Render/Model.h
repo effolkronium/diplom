@@ -6,7 +6,7 @@
 #include <map>
 #include <filesystem>
 
-namespace VulkanRender
+namespace RenderCommon
 {
     inline static glm::mat4 Assimp2Glm(const aiMatrix4x4& from)
     {

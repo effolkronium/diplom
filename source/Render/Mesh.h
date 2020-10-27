@@ -6,7 +6,7 @@
 #include <glm/glm.hpp>
 #include <assimp/scene.h>
 
-namespace VulkanRender
+namespace RenderCommon
 {
 	struct Vertex {
         inline static constexpr size_t c_maxBonePerVertexCount = 8;

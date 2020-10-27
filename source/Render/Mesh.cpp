@@ -1,6 +1,6 @@
 #include "Mesh.h"
 
-namespace VulkanRender
+namespace RenderCommon
 {
 	Mesh::~Mesh()
 	{

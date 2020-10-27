@@ -10,7 +10,7 @@
 using namespace std::literals;
 namespace fs = std::filesystem;
 
-namespace VulkanRender
+namespace RenderCommon
 {
 	namespace
 	{

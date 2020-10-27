@@ -80,7 +80,7 @@ public:
 		VkVertexInputBindingDescription bindingDescription{};
 
 		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(VulkanRender::Vertex);
+		bindingDescription.stride = sizeof(RenderCommon::Vertex);
 		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		return bindingDescription;
@@ -93,37 +93,37 @@ public:
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(VulkanRender::Vertex, Position);
+		attributeDescriptions[0].offset = offsetof(RenderCommon::Vertex, Position);
 
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
 		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(VulkanRender::Vertex, Normal);
+		attributeDescriptions[1].offset = offsetof(RenderCommon::Vertex, Normal);
 
 		attributeDescriptions[2].binding = 0;
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(VulkanRender::Vertex, TexCoords);
+		attributeDescriptions[2].offset = offsetof(RenderCommon::Vertex, TexCoords);
 
 		attributeDescriptions[3].binding = 0;
 		attributeDescriptions[3].location = 3;
 		attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_UINT;
-		attributeDescriptions[3].offset = offsetof(VulkanRender::Vertex, BoneIDs);
+		attributeDescriptions[3].offset = offsetof(RenderCommon::Vertex, BoneIDs);
 
 		attributeDescriptions[4].binding = 0;
 		attributeDescriptions[4].location = 4;
 		attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_UINT;
-		attributeDescriptions[4].offset = offsetof(VulkanRender::Vertex, BoneIDs) + sizeof(VulkanRender::Vertex::BoneIDs) / 2;
+		attributeDescriptions[4].offset = offsetof(RenderCommon::Vertex, BoneIDs) + sizeof(RenderCommon::Vertex::BoneIDs) / 2;
 
 		attributeDescriptions[5].binding = 0;
 		attributeDescriptions[5].location = 5;
 		attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		attributeDescriptions[5].offset = offsetof(VulkanRender::Vertex, Weights);
+		attributeDescriptions[5].offset = offsetof(RenderCommon::Vertex, Weights);
 
 		attributeDescriptions[6].binding = 0;
 		attributeDescriptions[6].location = 6;
 		attributeDescriptions[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
-		attributeDescriptions[6].offset = offsetof(VulkanRender::Vertex, Weights) + sizeof(VulkanRender::Vertex::Weights) / 2;
+		attributeDescriptions[6].offset = offsetof(RenderCommon::Vertex, Weights) + sizeof(RenderCommon::Vertex::Weights) / 2;
 
 		return attributeDescriptions;
 	}
@@ -241,9 +241,9 @@ public:
 
 	struct VulkanModel
 	{
-		std::unique_ptr<VulkanRender::Model> model;
+		std::unique_ptr<RenderCommon::Model> model;
 
-		std::map<VulkanRender::Texture::Type, MeshTextureImage> meshTextureImages;
+		std::map<RenderCommon::Texture::Type, MeshTextureImage> meshTextureImages;
 		std::vector<MeshVertexBuffer> meshVertexBuffers;
 		std::vector<MeshUniformBuffer> meshUniformBuffers;
 		std::vector<VkDescriptorSet> meshDescriptorSet;
@@ -551,9 +551,9 @@ public:
 		{
 			VulkanModel model1;
 
-			model1.model = std::make_unique<VulkanRender::Model>(modelInfo.modelPath,
-				VulkanRender::Model::Textures{
-					{modelInfo.texturePath, VulkanRender::Texture::Type::diffuse },
+			model1.model = std::make_unique<RenderCommon::Model>(modelInfo.modelPath,
+				RenderCommon::Model::Textures{
+					{modelInfo.texturePath, RenderCommon::Texture::Type::diffuse },
 				},
 				modelInfo.animationNumber
 			);
@@ -625,7 +625,7 @@ public:
 			_this->drawFrame();
 		});
 
-		//glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 		glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x, double y) {
 			auto _this = reinterpret_cast<RenderVulkan::Impl*>(glfwGetWindowUserPointer(window));
@@ -643,7 +643,7 @@ public:
 			lastX = x;
 			lastY = y;
 
-			//	_this->camera.ProcessMouseMovement(xoffset, yoffset);
+		    _this->camera.ProcessMouseMovement(xoffset, yoffset);
 		});
 	}
 
@@ -1673,7 +1673,7 @@ public:
 		MeshTextureImage textureImage{ this };
 		int texWidth{}, texHeight{}, texChannels{};
 
-		stbi_uc* pixels = VulkanRender::Model::loadTexture(path.string(), texWidth, texHeight);
+		stbi_uc* pixels = RenderCommon::Model::loadTexture(path.string(), texWidth, texHeight);
 		textureImage.mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
 
@@ -1848,7 +1848,7 @@ public:
 	}
 
 	// TODO
-	void createVertexBuffer(const std::vector<VulkanRender::Vertex>& vertices, const std::vector<uint32_t>& indices,
+	void createVertexBuffer(const std::vector<RenderCommon::Vertex>& vertices, const std::vector<uint32_t>& indices,
 							unique_ptr_buffer& vertexBuffer, unique_ptr_device_memory&  vertexBufferMemory) {
 		VkDeviceSize vertexSize = sizeof(vertices[0]) * vertices.size();
 		VkDeviceSize indexSize = sizeof(indices[0]) * indices.size();
@@ -1900,7 +1900,7 @@ public:
 			throw std::runtime_error("failed to create descriptor pool!");
 	}
 
-	std::vector<VkDescriptorSet> createDescriptorSets(const std::vector<MeshUniformBuffer>& uniformBuffers, const std::map<VulkanRender::Texture::Type, MeshTextureImage>& textures) {
+	std::vector<VkDescriptorSet> createDescriptorSets(const std::vector<MeshUniformBuffer>& uniformBuffers, const std::map<RenderCommon::Texture::Type, MeshTextureImage>& textures) {
 		std::vector<VkDescriptorSetLayout> layouts(m_swapChainImages.size(), m_descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1913,13 +1913,13 @@ public:
 		if (vkAllocateDescriptorSets(m_device, &allocInfo, descriptorSets.data()))
 			throw std::runtime_error("failed to allocate descriptor sets!");
 
-		auto findIt = textures.find(VulkanRender::Texture::Type::diffuse);
+		auto findIt = textures.find(RenderCommon::Texture::Type::diffuse);
 		if (findIt == textures.end())
 			throw std::runtime_error{ "Can't find diffuse texture" };
 
 		auto& diffuseTexture = findIt->second;
 		const MeshTextureImage* specularTexture = nullptr;
-		findIt = textures.find(VulkanRender::Texture::Type::specular);
+		findIt = textures.find(RenderCommon::Texture::Type::specular);
 		if (findIt != textures.end())
 			specularTexture = &findIt->second;
 
@@ -2210,7 +2210,7 @@ public:
 		vulkanMode.model->BoneTransform(m_currentTime, boneTransforms);
 
 		for (size_t i = 0; i < boneTransforms.size(); ++i)
-			vulkanMode.uniformBuffer[currentImage].BoneTransform[i] = VulkanRender::Assimp2Glm(boneTransforms[i]);
+			vulkanMode.uniformBuffer[currentImage].BoneTransform[i] = RenderCommon::Assimp2Glm(boneTransforms[i]);
 
 		std::memcpy(vulkanMode.meshUniformBuffers[currentImage].uniformBufferMemoryMapping,
 					vulkanMode.uniformBuffer[currentImage].BoneTransform,
@@ -2345,6 +2345,9 @@ public:
 		init(std::move(modelInfos));
 
 		while (!glfwWindowShouldClose(m_window)) {		
+			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+				break;
+
 			processInput();
 			showFPS();
 

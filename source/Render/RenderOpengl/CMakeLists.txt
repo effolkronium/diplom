@@ -10,6 +10,9 @@ add_library(${PROJECT_NAME} STATIC
             RenderOpengl.cpp
             RenderOpengl.h
 
+            RenderGUI.h
+            RenderGUI.cpp
+
             Shader.cpp
             Shader.h
 

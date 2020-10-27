@@ -34,10 +34,10 @@ public:
 
 	struct OpenglModel
 	{
-		std::unique_ptr<VulkanRender::Model> model;
+		std::unique_ptr<RenderCommon::Model> model;
 		std::vector<MeshRenderData> meshRenderData;
 
-		std::map<VulkanRender::Texture::Type, int> textures;
+		std::map<RenderCommon::Texture::Type, int> textures;
 
 		glm::vec3 position{};
 		glm::vec3 scale{};
@@ -80,6 +80,7 @@ public:
 		if (!glfwInit())
 			throw std::runtime_error{ "glfwInit has failed" };
 
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -133,9 +134,9 @@ public:
 		{
 			OpenglModel model1;
 
-			model1.model = std::make_unique<VulkanRender::Model>(modelInfo.modelPath,
-				VulkanRender::Model::Textures{
-					{modelInfo.texturePath, VulkanRender::Texture::Type::diffuse },
+			model1.model = std::make_unique<RenderCommon::Model>(modelInfo.modelPath,
+				RenderCommon::Model::Textures{
+					{modelInfo.texturePath, RenderCommon::Texture::Type::diffuse },
 				},
 				modelInfo.animationNumber
 			);
@@ -177,7 +178,7 @@ public:
 		m_models = std::move(models);
 	}
 
-	MeshRenderData createMeshRenderData(VulkanRender::Mesh& mesh)
+	MeshRenderData createMeshRenderData(RenderCommon::Mesh& mesh)
 	{
 		MeshRenderData meshRenderData;
 		glGenVertexArrays(1, &meshRenderData.VAO);
@@ -187,7 +188,7 @@ public:
 		glBindVertexArray(meshRenderData.VAO);
 		glBindBuffer(GL_ARRAY_BUFFER, meshRenderData.VBO);
 
-		glBufferData(GL_ARRAY_BUFFER, mesh.m_vertices.size() * sizeof(VulkanRender::Vertex), &mesh.m_vertices[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, mesh.m_vertices.size() * sizeof(RenderCommon::Vertex), &mesh.m_vertices[0], GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, meshRenderData.EBO);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.m_indices.size() * sizeof(unsigned int),
@@ -195,25 +196,25 @@ public:
 
 		// vertex positions
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VulkanRender::Vertex), (void*)0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RenderCommon::Vertex), (void*)0);
 		// vertex normals
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(VulkanRender::Vertex), (void*)offsetof(VulkanRender::Vertex, Normal));
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(RenderCommon::Vertex), (void*)offsetof(RenderCommon::Vertex, Normal));
 		// vertex texture coords
 		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(VulkanRender::Vertex), (void*)offsetof(VulkanRender::Vertex, TexCoords));
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RenderCommon::Vertex), (void*)offsetof(RenderCommon::Vertex, TexCoords));
 
 		glEnableVertexAttribArray(3);
-		glVertexAttribIPointer(3, 4, GL_INT, sizeof(VulkanRender::Vertex), (void*)offsetof(VulkanRender::Vertex, BoneIDs));
+		glVertexAttribIPointer(3, 4, GL_INT, sizeof(RenderCommon::Vertex), (void*)offsetof(RenderCommon::Vertex, BoneIDs));
 
 		glEnableVertexAttribArray(4);
-		glVertexAttribIPointer(4, 4, GL_INT, sizeof(VulkanRender::Vertex), (void*)(offsetof(VulkanRender::Vertex, BoneIDs) + 4 * sizeof(std::uint32_t)));
+		glVertexAttribIPointer(4, 4, GL_INT, sizeof(RenderCommon::Vertex), (void*)(offsetof(RenderCommon::Vertex, BoneIDs) + 4 * sizeof(std::uint32_t)));
 
 		glEnableVertexAttribArray(5);
-		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(VulkanRender::Vertex), (void*)offsetof(VulkanRender::Vertex, Weights));
+		glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(RenderCommon::Vertex), (void*)offsetof(RenderCommon::Vertex, Weights));
 
 		glEnableVertexAttribArray(6);
-		glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(VulkanRender::Vertex), (void*)(offsetof(VulkanRender::Vertex, Weights) + 4 * sizeof(float)));
+		glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(RenderCommon::Vertex), (void*)(offsetof(RenderCommon::Vertex, Weights) + 4 * sizeof(float)));
 
 		glBindVertexArray(meshRenderData.VAO);
 		glDrawElements(GL_TRIANGLES, mesh.m_indices.size(), GL_UNSIGNED_INT, 0);
@@ -230,7 +231,7 @@ public:
 
 		int width, height, nrComponents;
 
-		unsigned char* data = VulkanRender::Model::loadTexture(path.c_str(), width, height);
+		unsigned char* data = RenderCommon::Model::loadTexture(path.c_str(), width, height);
 
 		if (!data)
 			throw std::runtime_error{ "Texture failed to load at path: "s + path };
@@ -253,6 +254,7 @@ public:
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
+		glClearColor(1.f, 1.f, 1.f, 1.0f);
 
 		Shader ourShader(s_shader_v, s_shader_f);
 
@@ -262,9 +264,11 @@ public:
 
         while (!glfwWindowShouldClose(m_window))
         {
-			glClearColor(1.f, 1.f, 1.f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+				break;
 
+			
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			showFPS();
 			processInput();
 
@@ -290,17 +294,17 @@ public:
 				model.model->BoneTransform(currentTime, Transforms);
 
 				for (int i = 0; i < Transforms.size(); i++) {
-					ourShader.setMat4("gBones["s + std::to_string(i) + "]", VulkanRender::Assimp2Glm(Transforms[i]));
+					ourShader.setMat4("gBones["s + std::to_string(i) + "]", RenderCommon::Assimp2Glm(Transforms[i]));
 				}
 
-				auto findIt = model.textures.find(VulkanRender::Texture::Type::diffuse);
+				auto findIt = model.textures.find(RenderCommon::Texture::Type::diffuse);
 				if (findIt == model.textures.end())
 					throw std::runtime_error{ "Can't find diffuse texture" };
 
 				glActiveTexture(GL_TEXTURE0);
 				glBindTexture(GL_TEXTURE_2D, findIt->second);
 
-				findIt = model.textures.find(VulkanRender::Texture::Type::specular);
+				findIt = model.textures.find(RenderCommon::Texture::Type::specular);
 				if (findIt != model.textures.end())
 				{
 					glActiveTexture(GL_TEXTURE0 + 1);
@@ -309,7 +313,7 @@ public:
 				else
 				{
 					glActiveTexture(GL_TEXTURE0 + 1);
-					glBindTexture(GL_TEXTURE_2D, model.textures.find(VulkanRender::Texture::Type::diffuse)->second);
+					glBindTexture(GL_TEXTURE_2D, model.textures.find(RenderCommon::Texture::Type::diffuse)->second);
 				}
 
 				for (int i = 0; i < model.model->meshes.size(); ++i)
@@ -323,6 +327,8 @@ public:
 			glfwSwapBuffers(m_window);
             glfwPollEvents();
         }
+
+		glfwDestroyWindow(m_window);
 	}
 
 	void showFPS()
