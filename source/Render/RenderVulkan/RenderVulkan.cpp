@@ -41,8 +41,8 @@ constexpr bool enableValidationLayers = false;
 constexpr bool enableValidationLayers = true;
 #endif
 
-constexpr uint32_t g_WIDTH = 800;
-constexpr uint32_t g_HEIGHT = 600;
+constexpr uint32_t g_WIDTH = 1280;
+constexpr uint32_t g_HEIGHT = 720;
 
 const std::array<const char*, 1> g_validationLayers = {
 	"VK_LAYER_KHRONOS_validation",
@@ -71,6 +71,71 @@ static GLADapiproc glad_vulkan_callback(const char* name, void* user)
 static void errorCcallback(int error, const char* description)
 {
 	std::cerr << "glfwError #" << error << " ; desc: " << description << std::endl;
+}
+
+static void glfwSetWindowCenter(GLFWwindow* window) {
+	// Get window position and size
+	int window_x, window_y;
+	glfwGetWindowPos(window, &window_x, &window_y);
+
+	int window_width, window_height;
+	glfwGetWindowSize(window, &window_width, &window_height);
+
+	// Halve the window size and use it to adjust the window position to the center of the window
+	window_width *= 0.5;
+	window_height *= 0.5;
+
+	window_x += window_width;
+	window_y += window_height;
+
+	// Get the list of monitors
+	int monitors_length;
+	GLFWmonitor** monitors = glfwGetMonitors(&monitors_length);
+
+	if (monitors == NULL) {
+		// Got no monitors back
+		return;
+	}
+
+	// Figure out which monitor the window is in
+	GLFWmonitor* owner = NULL;
+	int owner_x, owner_y, owner_width, owner_height;
+
+	for (int i = 0; i < monitors_length; i++) {
+		// Get the monitor position
+		int monitor_x, monitor_y;
+		glfwGetMonitorPos(monitors[i], &monitor_x, &monitor_y);
+
+		// Get the monitor size from its video mode
+		int monitor_width, monitor_height;
+		GLFWvidmode* monitor_vidmode = (GLFWvidmode*)glfwGetVideoMode(monitors[i]);
+
+		if (monitor_vidmode == NULL) {
+			// Video mode is required for width and height, so skip this monitor
+			continue;
+
+		}
+		else {
+			monitor_width = monitor_vidmode->width;
+			monitor_height = monitor_vidmode->height;
+		}
+
+		// Set the owner to this monitor if the center of the window is within its bounding box
+		if ((window_x > monitor_x && window_x < (monitor_x + monitor_width)) && (window_y > monitor_y && window_y < (monitor_y + monitor_height))) {
+			owner = monitors[i];
+
+			owner_x = monitor_x;
+			owner_y = monitor_y;
+
+			owner_width = monitor_width;
+			owner_height = monitor_height;
+		}
+	}
+
+	if (owner != NULL) {
+		// Set the window position to the center of the owner monitor
+		glfwSetWindowPos(window, owner_x + (owner_width * 0.5) - window_width, owner_y + (owner_height * 0.5) - window_height);
+	}
 }
 
 class RenderVulkan::Impl
@@ -622,6 +687,7 @@ public:
 
 		m_window = glfwCreateWindow(m_framebufferWidth, m_framebufferHeight, "Window Title", NULL, NULL);
 		glfwSetWindowUserPointer(m_window, this);
+		glfwSetWindowCenter(m_window);
 
 		glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int width, int heigth) {
 			auto _this = reinterpret_cast<RenderVulkan::Impl*>(glfwGetWindowUserPointer(window));
@@ -633,6 +699,10 @@ public:
 
 		glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x, double y) {
 			auto _this = reinterpret_cast<RenderVulkan::Impl*>(glfwGetWindowUserPointer(window));
+
+			if (GLFW_CURSOR_NORMAL == glfwGetInputMode(window, GLFW_CURSOR))
+				return;
+
 			static float lastX = 400, lastY = 300;
 			static bool firstMouse = true;
 			if (firstMouse)
@@ -2185,6 +2255,14 @@ public:
 			camera.ProcessKeyboard(Camera_Movement::LEFT, m_deltaTime);
 		if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
 			camera.ProcessKeyboard(Camera_Movement::RIGHT, m_deltaTime);
+	
+		//if (glfwGetKey(m_window, GLFW_KEY_F) == GLFW_PRESS)
+		//{
+		//	if (GLFW_CURSOR_NORMAL == glfwGetInputMode(m_window, GLFW_CURSOR))
+		//		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		//	else
+		//		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		//}
 	}
 
 	void initThreadData()
