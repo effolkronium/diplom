@@ -254,19 +254,32 @@ public:
 
 			ImGui::SetWindowFontScale(3.5);
 
-			ImGui::BeginChild(22, { 50, 80 });
+			ImGui::BeginChild(22, { 50, 40 });
 			ImGui::EndChild();
 
-			ImGui::Button("      AVERAGE FPS            ");
+			ImGui::Button("  AVERAGE FPS (1/SPF)          ");
 
-			ImGui::BeginChild(1, { 50, 50 });
+			ImGui::BeginChild(1, { 50, 25 });
 			ImGui::EndChild();
 
 			double res = result.averageFps;
 			ImGui::SetCursorPosX(110);
 			ImGui::InputDouble(" ", &res, 0.0, 0.0, "%.3f");
 
-			ImGui::BeginChild(1543, { 50, 200 });
+			ImGui::BeginChild(1543, { 50, 50 });
+			ImGui::EndChild();
+
+
+			ImGui::Button("  AVERAGE SPF (1/FPS)            ");
+
+			ImGui::BeginChild(63241, { 50, 25 });
+			ImGui::EndChild();
+
+			double res2 = 1/result.averageFps;
+			ImGui::SetCursorPosX(110);
+			ImGui::InputDouble(" ", &res2, 0.0, 0.0, "%.3f");
+
+			ImGui::BeginChild(15453, { 50, 100 });
 			ImGui::EndChild();
 
 			ImGui::SetCursorPosX(180);
