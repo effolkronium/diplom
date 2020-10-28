@@ -11,7 +11,13 @@ if (WIN32)
 endif()
 
 set(DIPLOM_TOOLS_DIR "${CMAKE_SOURCE_DIR}/tools")
-set(DIPLOM_SHADER_COMPILER "${CMAKE_SOURCE_DIR}/tools/glslc.exe")
+
+if (WIN32)
+    set(DIPLOM_SHADER_COMPILER "${CMAKE_SOURCE_DIR}/tools/glslc.exe")
+else()
+    set(DIPLOM_SHADER_COMPILER "${CMAKE_SOURCE_DIR}/tools/glslc")
+endif()
+
 set(DIPLOM_RESOURCES_ZIP_URL https://api.onedrive.com/v1.0/shares/u!aHR0cHM6Ly8xZHJ2Lm1zL3UvcyFBazltZDlNYkhlUlRocmhzMFZGa2k2U2VIYjZ4bXc_ZT1peFFH/root/content)
 
 
@@ -34,9 +40,11 @@ set_target_properties(uninstall PROPERTIES FOLDER external/glfw)
 
 get_target_property(ASSIMP_DEPS assimp::assimp LINK_LIBRARIES)
 
-set_target_properties(${ASSIMP_DEPS} PROPERTIES FOLDER external/assimp)
-set_target_properties(zlib PROPERTIES FOLDER external/assimp)
-set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER external/assimp)
+if(WIN32)
+    set_target_properties(${ASSIMP_DEPS} PROPERTIES FOLDER external/assimp)
+    set_target_properties(zlib PROPERTIES FOLDER external/assimp)
+    set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER external/assimp)
+endif()
 set_target_properties(assimp PROPERTIES FOLDER external/assimp)
 
 find_package(OpenGL REQUIRED)

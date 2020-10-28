@@ -10,6 +10,29 @@
 using namespace std::literals;
 namespace fs = std::filesystem;
 
+#ifdef __linux__
+
+#include <libgen.h>
+#include <unistd.h>
+#include <linux/limits.h>
+
+namespace
+{
+        void SetupCurrentDirectory()
+        {
+                std::string modulePath;
+                modulePath.resize(PATH_MAX);
+
+                ssize_t count = readlink("/proc/self/exe", &modulePath[0], PATH_MAX);
+                if(count < 0)
+                        throw std::runtime_error("readlink failed"s + std::to_string(errno));
+
+                char* path = dirname(&modulePath[0]);
+				chdir(path);
+        }
+}
+#endif
+
 #ifdef _WIN32
 
 #include "Windows.h"
@@ -40,16 +63,14 @@ namespace
 		if (0 == SetCurrentDirectory(fs::path{ modulePath }.parent_path().c_str()))
 			throw std::runtime_error{ "SetCurrentDirectory error: "s + std::to_string(GetLastError()) };
 	}
-#endif
 }
+#endif
 
 #include <thread>
 
 int main()
 try {
-#ifdef _WIN32
 	SetupCurrentDirectory();
-#endif
 
 	RenderGuiData guiData{};
 	while (true)

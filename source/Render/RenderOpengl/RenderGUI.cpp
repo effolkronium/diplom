@@ -133,7 +133,7 @@ public:
 
 			ImGui::Button("MODEL NUMBER");
 
-			if (ImGui::InputInt("10-100", &modelNumber, 10, 100))
+			if (ImGui::InputInt("10-500", &modelNumber, 10, 500))
 			{
 				cbHigh = false;
 				cbMedium = false;
@@ -142,23 +142,23 @@ public:
 
 			if (modelNumber < 10)
 				modelNumber = 10;
-			else if (modelNumber > 100)
-				modelNumber = 100;
+			else if (modelNumber > 500)
+				modelNumber = 500;
 
-			if (ImGui::Checkbox("Hight (100)", &cbHigh) || modelNumber == 100)
+			if (ImGui::Checkbox("Hight (500)", &cbHigh) || modelNumber == 500)
 			{
 				cbHigh = true;
 				cbMedium = false;
 				cbLow = false;
-				modelNumber = 100;
+				modelNumber = 500;
 			}
 
-			if (ImGui::Checkbox("Medium (50)", &cbMedium) || modelNumber == 50)
+			if (ImGui::Checkbox("Medium (100)", &cbMedium) || modelNumber == 100)
 			{
 				cbHigh = false;
 				cbMedium = true;
 				cbLow = false;
-				modelNumber = 50;
+				modelNumber = 100;
 			}
 
 			if (ImGui::Checkbox("Low (10)", &cbLow) || modelNumber == 10)

@@ -15,7 +15,8 @@ add_library(${PROJECT_NAME} STATIC
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         glm
-		Utils
+	Utils
+	assimp::assimp
 )
 
 target_include_directories(${PROJECT_NAME} 

@@ -243,7 +243,7 @@ public:
 	{
 		std::unique_ptr<RenderCommon::Model> model;
 
-		std::map<RenderCommon::Texture::Type, MeshTextureImage> meshTextureImages;
+		std::map<RenderCommon::Texture::Type, MeshTextureImage*> meshTextureImages;
 		std::vector<MeshVertexBuffer> meshVertexBuffers;
 		std::vector<MeshUniformBuffer> meshUniformBuffers;
 		std::vector<VkDescriptorSet> meshDescriptorSet;
@@ -347,6 +347,8 @@ public:
 	int m_coreNumber = std::thread::hardware_concurrency();
 	utils::ThreadPool m_threadPool{ m_coreNumber };
 	std::vector<ThreadData> m_threadData;
+
+	std::map<std::string, MeshTextureImage> m_imagesCache;
 public:
 	void cleanupSwapChain() {
 		if (m_depthImageView)
@@ -440,6 +442,8 @@ public:
 			model.meshVertexBuffers.clear();
 			model.meshUniformBuffers.clear();
 		}
+
+		m_imagesCache.clear();
 
 		if (m_descriptorSetLayout)
 		{
@@ -745,7 +749,7 @@ public:
 		if (vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()))
 			throw std::runtime_error("if(vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data()))");
 
-		return g_validationLayers.end() != find_if(begin(g_validationLayers), end(g_validationLayers), [&](auto& arg) {
+		return g_validationLayers.end() != std::find_if(begin(g_validationLayers), end(g_validationLayers), [&](auto& arg) {
 			return availableLayers.end() != std::find_if(begin(availableLayers), end(availableLayers), [&](auto& prop) {
 				return 0 == std::strcmp(prop.layerName, arg);
 				});
@@ -974,7 +978,7 @@ public:
 
 	VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
 		for (const auto& availablePresentMode : availablePresentModes) {
-			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
 				return availablePresentMode;
 			}
 		}
@@ -1445,7 +1449,9 @@ public:
 		transitionImageLayout(m_depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1);
 	}
 
-	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+	void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples,
+					 VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
+
 		VkImageCreateInfo imageInfo{};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -1669,7 +1675,15 @@ public:
 		endSingleTimeCommands(commandBuffer);
 	}
 
-	MeshTextureImage createTextureImage(const fs::path& path ) {
+	MeshTextureImage* createTextureImage(const fs::path& path ) {
+
+		auto findIt = m_imagesCache.find(path.string());
+
+		if(findIt != m_imagesCache.end())
+		{
+			return &findIt->second;
+		}
+
 		MeshTextureImage textureImage{ this };
 		int texWidth{}, texHeight{}, texChannels{};
 
@@ -1717,7 +1731,11 @@ public:
 		textureImage.textureImageView.reset(createTextureImageView(textureImage.textureImage.get(), textureImage.mipLevels));
 		textureImage.textureSampler.reset(createTextureSampler(textureImage.mipLevels));
 
-		return textureImage;
+		m_imagesCache.emplace(path.string(), std::move(textureImage));
+
+		findIt = m_imagesCache.find(path.string());
+
+		return &findIt->second;
 	}
 
 	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
@@ -1900,7 +1918,7 @@ public:
 			throw std::runtime_error("failed to create descriptor pool!");
 	}
 
-	std::vector<VkDescriptorSet> createDescriptorSets(const std::vector<MeshUniformBuffer>& uniformBuffers, const std::map<RenderCommon::Texture::Type, MeshTextureImage>& textures) {
+	std::vector<VkDescriptorSet> createDescriptorSets(const std::vector<MeshUniformBuffer>& uniformBuffers, const std::map<RenderCommon::Texture::Type, MeshTextureImage*>& textures) {
 		std::vector<VkDescriptorSetLayout> layouts(m_swapChainImages.size(), m_descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1917,11 +1935,11 @@ public:
 		if (findIt == textures.end())
 			throw std::runtime_error{ "Can't find diffuse texture" };
 
-		auto& diffuseTexture = findIt->second;
+		auto& diffuseTexture = *findIt->second;
 		const MeshTextureImage* specularTexture = nullptr;
 		findIt = textures.find(RenderCommon::Texture::Type::specular);
 		if (findIt != textures.end())
-			specularTexture = &findIt->second;
+			specularTexture = findIt->second;
 
 		for (size_t i = 0; i < m_swapChainImages.size(); i++) {
 			VkDescriptorBufferInfo bufferInfo{};

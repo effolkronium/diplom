@@ -32,9 +32,8 @@ target_link_libraries(${PROJECT_NAME}
                 OpenGL::GL
                 glfw
                 glm
-                assimp::assimp
                 Utils
-				imgui
+		imgui
 )
 
 target_include_directories(${PROJECT_NAME} 

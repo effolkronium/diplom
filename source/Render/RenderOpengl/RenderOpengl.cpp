@@ -48,6 +48,8 @@ public:
 	std::vector<OpenglModel> m_models;
 
 	int m_modelsMeshCount = 0;
+
+	std::map<std::string, int> m_textureCache;
 public:
 	Impl()
 	{
@@ -226,6 +228,13 @@ public:
 
 	int createTextureImage(const std::string& path)
 	{
+		auto findIt = m_textureCache.find(path);
+
+		if(findIt != m_textureCache.end())
+		{
+			return findIt->second;
+		}
+
 		unsigned int textureID;
 		glGenTextures(1, &textureID);
 
@@ -244,6 +253,8 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		m_textureCache.emplace(path, textureID);
 
 		return textureID;
 	}

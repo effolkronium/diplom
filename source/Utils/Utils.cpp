@@ -1,7 +1,6 @@
 #include "Utils.h"
 #include <fstream>
 #include <cassert>
-#include "Windows.h"
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;

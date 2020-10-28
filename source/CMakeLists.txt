@@ -7,8 +7,12 @@ add_executable(${CMAKE_PROJECT_NAME} main.cpp)
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME})
 
+#if(WIN32)
+#	set(LINKER_FIXER Wl, --start-group
+#endif()
+
 target_link_libraries(${CMAKE_PROJECT_NAME}
-            PRIVATE  
+       	PRIVATE
                 RenderVulkan
                 RenderOpengl
                 Scene
@@ -20,7 +24,11 @@ if (NOT EXISTS "${CMAKE_SOURCE_DIR}/resources.zip")
 endif()
 
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/resources)
-	execute_process(COMMAND "${DIPLOM_TOOLS_DIR}/7z.exe" x "${CMAKE_SOURCE_DIR}/resources.zip" -o${CMAKE_SOURCE_DIR}/)
+	if(WIN32)
+	    execute_process(COMMAND "${DIPLOM_TOOLS_DIR}/7z.exe" x "${CMAKE_SOURCE_DIR}/resources.zip" -o${CMAKE_SOURCE_DIR}/)
+        else()
+      	    execute_process(COMMAND "unzip" -o "${CMAKE_SOURCE_DIR}/resources.zip" -d "${CMAKE_SOURCE_DIR}/") 
+        endif()
 endif()
 
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} PRE_BUILD
