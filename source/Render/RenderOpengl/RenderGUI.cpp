@@ -5,6 +5,7 @@
 
 #include <string>
 #include <iostream>
+#include <thread>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -254,7 +255,7 @@ public:
 
 			ImGui::SetWindowFontScale(3.5);
 
-			ImGui::BeginChild(22, { 50, 40 });
+			ImGui::BeginChild(22, { 50, 5 });
 			ImGui::EndChild();
 
 			ImGui::Button("  AVERAGE FPS (1/SPF)          ");
@@ -264,22 +265,34 @@ public:
 
 			double res = result.averageFps;
 			ImGui::SetCursorPosX(110);
-			ImGui::InputDouble(" ", &res, 0.0, 0.0, "%.3f");
+			ImGui::InputDouble("  ", &res, 0.0, 0.0, "%.3f");
 
-			ImGui::BeginChild(1543, { 50, 50 });
+			ImGui::BeginChild(1543, { 50, 15 });
 			ImGui::EndChild();
 
 
 			ImGui::Button("  AVERAGE SPF (1/FPS)            ");
 
-			ImGui::BeginChild(63241, { 50, 25 });
+			ImGui::BeginChild(63241, { 50, 15 });
 			ImGui::EndChild();
 
 			double res2 = 1/result.averageFps;
 			ImGui::SetCursorPosX(110);
 			ImGui::InputDouble(" ", &res2, 0.0, 0.0, "%.3f");
 
-			ImGui::BeginChild(15453, { 50, 100 });
+			ImGui::BeginChild(63212341, { 50, 15 });
+			ImGui::EndChild();
+
+			ImGui::Button("    CORES NUMBER            ");
+
+			ImGui::BeginChild(6324321, { 50, 15 });
+			ImGui::EndChild();
+
+			int res3 = std::thread::hardware_concurrency();
+			ImGui::SetCursorPosX(110);
+			ImGui::InputInt("   ", &res3, 0, 0);
+
+			ImGui::BeginChild(9876543, { 50, 15 });
 			ImGui::EndChild();
 
 			ImGui::SetCursorPosX(180);
