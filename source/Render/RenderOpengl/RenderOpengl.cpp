@@ -43,7 +43,7 @@ public:
 		glm::vec3 scale{};
 	};
 public:
-	Camera camera{ glm::vec3(0.0f, 0.0f, 3.0f) };
+	Camera camera{ glm::vec3(6.886569, 2.976195, 14.256577) }; 
 
 	std::vector<OpenglModel> m_models;
 

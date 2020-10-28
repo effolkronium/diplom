@@ -51,22 +51,22 @@ try {
 	SetupCurrentDirectory();
 #endif
 
-
+	RenderGuiData guiData{};
 	while (true)
 	{
 		RenderGUI gui;
-		RenderGuiData guiData = gui.startRenderLoop();
+		guiData = gui.startRenderLoop(guiData);
 
 		if (guiData.renderType == RenderGuiData::RenderType::OpenGL)
 		{
 			RenderOpengl openglRender;
-			Scene scene{ openglRender };
+			Scene scene{ openglRender, guiData };
 			scene.run();
 		}
 		else if (guiData.renderType == RenderGuiData::RenderType::Vulkan)
 		{
 			RenderVulkan vulkanRender;
-			Scene scene{ vulkanRender };
+			Scene scene{ vulkanRender, guiData };
 			scene.run();
 		}
 		else

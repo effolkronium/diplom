@@ -68,17 +68,13 @@ public:
 		});
 	}
 
-	RenderGuiData  startRenderLoop()
+	RenderGuiData startRenderLoop(RenderGuiData result)
 	{		
 		init();
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glClearColor(1.f, 1.f, 1.f, 1.0f);
-
-		RenderGuiData result;
-
-		result.renderType = RenderGuiData::RenderType::Exit;
 
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -92,21 +88,23 @@ public:
 
 
 
-		bool cbVulkan = false;
-		bool cbOpengl = false;
+		bool cbVulkan = result.renderType == RenderGuiData::RenderType::Vulkan;
+		bool cbOpengl = result.renderType == RenderGuiData::RenderType::OpenGL;
 
-		bool cbHigh= false;
-		bool cbMedium = false;
-		bool cbLow = false;
+		bool cbHigh= result.sceneLoad == RenderGuiData::SceneLoad::High;
+		bool cbMedium = result.sceneLoad == RenderGuiData::SceneLoad::Med;
+		bool cbLow = result.sceneLoad == RenderGuiData::SceneLoad::Low;
 
-        while (!glfwWindowShouldClose(m_window))
-        {
-			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+
+		int modelNumber = 10;
+		while (true)
+		{
+			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS || glfwWindowShouldClose(m_window))
 			{
 				result.renderType = RenderGuiData::RenderType::Exit;
 				break;
 			}
-			
+
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -116,7 +114,7 @@ public:
 			ImGui::NewFrame();
 
 			ImGui::Begin(" ");
-			
+
 			ImGui::SetWindowFontScale(3.5);
 			ImGui::Button("RENDER TYPE");
 
@@ -132,29 +130,43 @@ public:
 				cbOpengl = true;
 			}
 
-			
+
 			ImGui::Button("MODEL NUMBER");
 
+			if (ImGui::InputInt("10-100", &modelNumber, 10, 100))
+			{
+				cbHigh = false;
+				cbMedium = false;
+				cbLow = false;
+			}
 
-			if (ImGui::Checkbox("Hight (100)", &cbHigh))
+			if (modelNumber < 10)
+				modelNumber = 10;
+			else if (modelNumber > 100)
+				modelNumber = 100;
+
+			if (ImGui::Checkbox("Hight (100)", &cbHigh) || modelNumber == 100)
 			{
 				cbHigh = true;
 				cbMedium = false;
 				cbLow = false;
+				modelNumber = 100;
 			}
 
-			if (ImGui::Checkbox("Medium (50)", &cbMedium))
+			if (ImGui::Checkbox("Medium (50)", &cbMedium) || modelNumber == 50)
 			{
 				cbHigh = false;
 				cbMedium = true;
 				cbLow = false;
+				modelNumber = 50;
 			}
 
-			if (ImGui::Checkbox("Low (10)", &cbLow))
+			if (ImGui::Checkbox("Low (10)", &cbLow) || modelNumber == 10)
 			{
 				cbHigh = false;
 				cbMedium = false;
 				cbLow = true;
+				modelNumber = 10;
 			}
 
 			ImVec2 windowSize = ImGui::GetIO().DisplaySize;
@@ -187,10 +199,13 @@ public:
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 
-		if (cbOpengl)
-			result.renderType = RenderGuiData::RenderType::OpenGL;
-		else if(cbVulkan)
-			result.renderType = RenderGuiData::RenderType::Vulkan;
+		if (result.renderType != RenderGuiData::RenderType::Exit)
+		{
+			if (cbOpengl)
+				result.renderType = RenderGuiData::RenderType::OpenGL;
+			else if (cbVulkan)
+				result.renderType = RenderGuiData::RenderType::Vulkan;
+		}
 
 		if(cbHigh)
 			result.sceneLoad = RenderGuiData::SceneLoad::High;
@@ -198,6 +213,8 @@ public:
 			result.sceneLoad = RenderGuiData::SceneLoad::Med;
 		else if(cbLow)
 			result.sceneLoad = RenderGuiData::SceneLoad::Low;
+
+		result.modelNumber = modelNumber;
 
 		glfwDestroyWindow(m_window);
 
@@ -215,7 +232,7 @@ RenderGUI::RenderGUI()
 
 RenderGUI::~RenderGUI() = default;
 
-RenderGuiData RenderGUI::startRenderLoop()
+RenderGuiData RenderGUI::startRenderLoop(RenderGuiData result)
 {
-	return m_impl->startRenderLoop();
+	return m_impl->startRenderLoop(result);
 }

@@ -2,8 +2,9 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
+#include <glm/gtx/string_cast.hpp>
 #include <vector>
+#include <iostream>
 
 // Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific input methods
 enum class Camera_Movement {
@@ -76,6 +77,9 @@ public:
             Position -= Right * velocity;
         if (direction == Camera_Movement::RIGHT)
             Position += Right * velocity;
+
+
+        //std::cout << glm::to_string(Position) << std::endl;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.

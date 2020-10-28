@@ -3,7 +3,7 @@
 class Scene
 {
 public:
-	Scene(IRender& render);
+	Scene(IRender& render, RenderGuiData guiData);
 
 	void run();
 private:

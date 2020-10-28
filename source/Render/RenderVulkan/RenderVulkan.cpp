@@ -332,7 +332,7 @@ public:
 	int m_framebufferWidth = g_WIDTH;
 	int m_framebufferHeight = g_HEIGHT;
 
-	Camera camera{ glm::vec3(0.0f, 0.0f, 3.0f) };
+	Camera camera{ glm::vec3(6.886569, 2.976195, 14.256577) };
 
 	double m_deltaTime{};
 	double m_currentTime{};

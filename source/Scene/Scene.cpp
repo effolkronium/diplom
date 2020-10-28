@@ -102,24 +102,17 @@ namespace
 
 #define M_PI       3.14159265358979323846   // pi
 
-Scene::Scene(IRender& render) :
+Scene::Scene(IRender& render, RenderGuiData guiData) :
 	m_render{ render }
 {
 
 	auto modelInfo = getModelInfo(ModelType::Pony);
 
-
-
-	//modelInfo.animationNumber = 2;
-
-	//m_modelInfos.push_back(modelInfo);
-
-
 	for (int j = 0; j < 10; ++j)
 	{
-		for (int i = 0; i < 10; ++i)
+		for (int i = 0; i < guiData.modelNumber / 10; ++i)
 		{
-			auto modelInfo = getModelInfo(ModelType(fixedRundom[(i+1)*(j+1)]));
+			auto modelInfo = getModelInfo(ModelType(fixedRundom[(i + 1) * (j + 1)]));
 
 			int yOffset = i / 5;
 
@@ -132,6 +125,7 @@ Scene::Scene(IRender& render) :
 		}
 	}
 }
+
 
 void Scene::run()
 {

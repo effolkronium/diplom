@@ -3,6 +3,22 @@
 #include <string>
 #include <vector>
 
+struct RenderGuiData
+{
+	RenderGuiData() {}
+	enum class RenderType
+	{
+		OpenGL, Vulkan, Exit
+	} renderType{ RenderType::OpenGL };
+
+	enum class SceneLoad
+	{
+		Low, Med, High
+	} sceneLoad{ SceneLoad::Med };
+
+	int modelNumber = 0;
+};
+
 struct ModelInfo
 {
 	float posX{}, posY{}, posZ{};
