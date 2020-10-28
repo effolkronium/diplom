@@ -87,7 +87,7 @@ public:
 		ImGui_ImplOpenGL3_Init("#version 130");
 
 
-	//	if (result.averageFps > 0)
+	    if (result.averageFps > 0)
 		{
 			renderResultMenu(result);
 		}
