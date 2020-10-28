@@ -50,7 +50,7 @@ namespace utils
 		: stop(false)
 	{
 		assert(threads);
-		for (size_t i = 0; i < threads - 1; ++i)
+		for (size_t i = 0; i < threads; ++i)
 			workers.emplace_back(
 				[this, i]
 				{
