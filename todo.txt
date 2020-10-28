@@ -1,9 +1,0 @@
-Add model loading to vulkan
-Add animation support
-
-Delete Camera.h duplicate
-Move Camera.h impl to cpp
-
-Make base code for mesh and model
-
-Make multithreaded command buffer
