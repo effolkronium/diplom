@@ -17,6 +17,8 @@ struct RenderGuiData
 	} sceneLoad{ SceneLoad::Med };
 
 	int modelNumber = 10;
+
+	double averageFps = -1;
 };
 
 struct ModelInfo
@@ -37,5 +39,5 @@ class IRender
 public:
 	virtual ~IRender() = default;
 
-	virtual void startRenderLoop(std::vector<ModelInfo> modelInfos) = 0;
+	virtual double startRenderLoop(std::vector<ModelInfo> modelInfos) = 0;
 };

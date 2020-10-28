@@ -5,7 +5,7 @@ class Scene
 public:
 	Scene(IRender& render, RenderGuiData guiData);
 
-	void run();
+	double run();
 private:
 	IRender& m_render;
 

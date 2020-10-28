@@ -87,7 +87,7 @@ public:
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_SAMPLES, 8);
-		m_window = glfwCreateWindow(800, 600, "My Title", NULL, NULL);
+		m_window = glfwCreateWindow(800, 600, " ", NULL, NULL);
 		if (!m_window)
 			throw std::runtime_error{ "glfwCreateWindow has failed" };
 
@@ -259,7 +259,7 @@ public:
 		return textureID;
 	}
 
-	void startRenderLoop(std::vector<ModelInfo> modelInfos)
+	double startRenderLoop(std::vector<ModelInfo> modelInfos)
 	{		
 		init(std::move(modelInfos));
 
@@ -273,16 +273,16 @@ public:
 		ourShader.setInt("material.texture_diffuse1", 0);
 		//ourShader.setInt("material.texture_specular1", 1);
 
+		auto startSeconds = glfwGetTime();
+		std::uint64_t frameCount = 0;
         while (!glfwWindowShouldClose(m_window))
         {
 			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 				break;
 
-			
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			showFPS();
 			processInput();
-
 
 			ourShader.use();
 
@@ -336,10 +336,18 @@ public:
 			}
 
 			glfwSwapBuffers(m_window);
+			frameCount++;
+
             glfwPollEvents();
         }
 
+		auto endSeconds = glfwGetTime();
+		auto renderSeconds = endSeconds - startSeconds;
+		auto averageFps = frameCount / renderSeconds;
+
 		glfwDestroyWindow(m_window);
+
+		return averageFps;
 	}
 
 	void showFPS()
@@ -397,7 +405,7 @@ RenderOpengl::RenderOpengl()
 
 RenderOpengl::~RenderOpengl() = default;
 
-void RenderOpengl::startRenderLoop(std::vector<ModelInfo> modelInfos)
+double RenderOpengl::startRenderLoop(std::vector<ModelInfo> modelInfos)
 {
-	m_impl->startRenderLoop(std::move(modelInfos));
+	return m_impl->startRenderLoop(std::move(modelInfos));
 }

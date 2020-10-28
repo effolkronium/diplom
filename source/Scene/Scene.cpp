@@ -397,7 +397,7 @@ Scene::Scene(IRender& render, RenderGuiData guiData) :
 }
 
 
-void Scene::run()
+double Scene::run()
 {
-	m_render.startRenderLoop(m_modelInfos);
+	return m_render.startRenderLoop(m_modelInfos);
 }

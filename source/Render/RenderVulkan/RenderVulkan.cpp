@@ -2358,23 +2358,35 @@ public:
 	}
 
 	// Rendering loop
-	void startRenderLoop(std::vector<ModelInfo> modelInfos)
+	double startRenderLoop(std::vector<ModelInfo> modelInfos)
 	{
 		init(std::move(modelInfos));
 
+		std::uint64_t frameCount = 0;
+		double startTime = glfwGetTime();
 		while (!glfwWindowShouldClose(m_window)) {		
 			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 				break;
 
+			updateDeltaTime();
 			processInput();
 			showFPS();
 
-			glfwPollEvents();
 			drawFrame();
-			updateDeltaTime();
+			frameCount++;
+
+			glfwPollEvents();
 		}
 
+		double endTime = glfwGetTime();
+
+		double renderTime = endTime - startTime;
+
+		double averageFps = frameCount / renderTime;
+
 		vkDeviceWaitIdle(m_device);
+
+		return averageFps;
 	}
 
 	void drawFrame() {
@@ -2454,7 +2466,7 @@ RenderVulkan::RenderVulkan()
 
 RenderVulkan::~RenderVulkan() = default;
 
-void RenderVulkan::startRenderLoop(std::vector<ModelInfo> modelInfos)
+double RenderVulkan::startRenderLoop(std::vector<ModelInfo> modelInfos)
 {
-	m_impl->startRenderLoop(std::move(modelInfos));
+	return m_impl->startRenderLoop(std::move(modelInfos));
 }

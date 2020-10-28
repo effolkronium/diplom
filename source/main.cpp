@@ -68,7 +68,11 @@ namespace
 
 #include <thread>
 
+#ifdef _WIN32
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
+#else
 int main()
+#endif
 try {
 	SetupCurrentDirectory();
 
@@ -82,13 +86,13 @@ try {
 		{
 			RenderOpengl openglRender;
 			Scene scene{ openglRender, guiData };
-			scene.run();
+			guiData.averageFps = scene.run();
 		}
 		else if (guiData.renderType == RenderGuiData::RenderType::Vulkan)
 		{
 			RenderVulkan vulkanRender;
 			Scene scene{ vulkanRender, guiData };
-			scene.run();
+			guiData.averageFps = scene.run();
 		}
 		else
 		{

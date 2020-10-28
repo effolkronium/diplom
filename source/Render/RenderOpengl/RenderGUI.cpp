@@ -48,7 +48,7 @@ public:
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_SAMPLES, 8);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-		m_window = glfwCreateWindow(561, 585, "My Title", NULL, NULL);
+		m_window = glfwCreateWindow(561, 585, " ", NULL, NULL);
 		if (!m_window)
 			throw std::runtime_error{ "glfwCreateWindow has failed" };
 
@@ -87,11 +87,28 @@ public:
 		ImGui_ImplOpenGL3_Init("#version 130");
 
 
+	//	if (result.averageFps > 0)
+		{
+			renderResultMenu(result);
+		}
 
+		result = renderMainMenu(result);
+
+		ImGui_ImplOpenGL3_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+
+		glfwDestroyWindow(m_window);
+
+		return result;
+	}
+
+	RenderGuiData renderMainMenu(RenderGuiData result)
+	{
 		bool cbVulkan = result.renderType == RenderGuiData::RenderType::Vulkan;
 		bool cbOpengl = result.renderType == RenderGuiData::RenderType::OpenGL;
 
-		bool cbHigh= result.sceneLoad == RenderGuiData::SceneLoad::High;
+		bool cbHigh = result.sceneLoad == RenderGuiData::SceneLoad::High;
 		bool cbMedium = result.sceneLoad == RenderGuiData::SceneLoad::Med;
 		bool cbLow = result.sceneLoad == RenderGuiData::SceneLoad::Low;
 
@@ -186,18 +203,14 @@ public:
 
 			ImGui::Render();
 			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-			
+
 
 			glfwSwapBuffers(m_window);
-            glfwPollEvents();
+			glfwPollEvents();
 
 			if (startPressed)
 				break;
-        }
-
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
+		}
 
 		if (result.renderType != RenderGuiData::RenderType::Exit)
 		{
@@ -207,18 +220,72 @@ public:
 				result.renderType = RenderGuiData::RenderType::Vulkan;
 		}
 
-		if(cbHigh)
+		if (cbHigh)
 			result.sceneLoad = RenderGuiData::SceneLoad::High;
-		else if(cbMedium)
+		else if (cbMedium)
 			result.sceneLoad = RenderGuiData::SceneLoad::Med;
-		else if(cbLow)
+		else if (cbLow)
 			result.sceneLoad = RenderGuiData::SceneLoad::Low;
 
 		result.modelNumber = modelNumber;
 
-		glfwDestroyWindow(m_window);
-
 		return result;
+	}
+
+	void renderResultMenu(RenderGuiData result)
+	{
+		while (true)
+		{
+			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS || glfwWindowShouldClose(m_window))
+			{
+				result.renderType = RenderGuiData::RenderType::Exit;
+				break;
+			}
+
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+			// Start the Dear ImGui frame
+			ImGui_ImplOpenGL3_NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui::NewFrame();
+
+			ImGui::Begin(" ");
+
+			ImGui::SetWindowFontScale(3.5);
+
+			ImGui::BeginChild(22, { 50, 80 });
+			ImGui::EndChild();
+
+			ImGui::Button("      AVERAGE FPS            ");
+
+			ImGui::BeginChild(1, { 50, 50 });
+			ImGui::EndChild();
+
+			double res = result.averageFps;
+			ImGui::SetCursorPosX(110);
+			ImGui::InputDouble(" ", &res, 0.0, 0.0, "%.3f");
+
+			ImGui::BeginChild(1543, { 50, 200 });
+			ImGui::EndChild();
+
+			ImGui::SetCursorPosX(180);
+			ImGui::BeginChild(2);
+			ImGui::SetWindowFontScale(1.5);
+			bool startPressed = ImGui::Button(" BACK ");
+
+			ImGui::EndChild();
+			ImGui::End();
+			ImGui::Render();
+			ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+
+			glfwSwapBuffers(m_window);
+			glfwPollEvents();
+
+			if (startPressed)
+				break;
+		}
 	}
 private:
 	GLFWwindow* m_window;
@@ -236,3 +303,5 @@ RenderGuiData RenderGUI::startRenderLoop(RenderGuiData result)
 {
 	return m_impl->startRenderLoop(result);
 }
+
+

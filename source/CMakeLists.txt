@@ -2,20 +2,23 @@ add_subdirectory(Render)
 add_subdirectory(Scene)
 add_subdirectory(Utils)
 
-add_executable(${CMAKE_PROJECT_NAME} main.cpp)
+if (NOT WIN32)
+    add_executable(${CMAKE_PROJECT_NAME} main.cpp)
+    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -mwindows)
+else()
+    add_executable(${CMAKE_PROJECT_NAME} WIN32 main.cpp)
+    set(ICON_LINK_RES "${CMAKE_SOURCE_DIR}/resources/icon.res")
+endif()
 
 set_property(TARGET ${CMAKE_PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${CMAKE_PROJECT_NAME})
-
-#if(WIN32)
-#	set(LINKER_FIXER Wl, --start-group
-#endif()
 
 target_link_libraries(${CMAKE_PROJECT_NAME}
        	PRIVATE
                 RenderVulkan
                 RenderOpengl
                 Scene
+                ${ICON_LINK_RES}
 )
 
 if (NOT EXISTS "${CMAKE_SOURCE_DIR}/resources.zip")
