@@ -96,7 +96,7 @@ public:
 		bool cbLow = result.sceneLoad == RenderGuiData::SceneLoad::Low;
 
 
-		int modelNumber = 10;
+		int modelNumber = result.modelNumber;
 		while (true)
 		{
 			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS || glfwWindowShouldClose(m_window))

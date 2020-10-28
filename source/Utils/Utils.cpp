@@ -1,6 +1,7 @@
 #include "Utils.h"
 #include <fstream>
 #include <cassert>
+#include "Windows.h"
 
 namespace fs = std::filesystem;
 using namespace std::string_literals;
@@ -50,7 +51,7 @@ namespace utils
 		: stop(false)
 	{
 		assert(threads);
-		for (size_t i = 0; i < threads; ++i)
+		for (size_t i = 0; i < threads - 1; ++i)
 			workers.emplace_back(
 				[this, i]
 				{
@@ -58,6 +59,7 @@ namespace utils
 						std::unique_lock<std::mutex> lock(queue_mutex);
 						threadIds.emplace(std::this_thread::get_id(), i);
 					}
+
 					for (;;)
 					{
 						std::function<void()> task;

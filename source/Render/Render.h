@@ -16,7 +16,7 @@ struct RenderGuiData
 		Low, Med, High
 	} sceneLoad{ SceneLoad::Med };
 
-	int modelNumber = 0;
+	int modelNumber = 10;
 };
 
 struct ModelInfo
