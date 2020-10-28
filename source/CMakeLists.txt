@@ -4,7 +4,6 @@ add_subdirectory(Utils)
 
 if (NOT WIN32)
     add_executable(${CMAKE_PROJECT_NAME} main.cpp)
-    target_link_options(${CMAKE_PROJECT_NAME} PRIVATE -mwindows)
 else()
     add_executable(${CMAKE_PROJECT_NAME} WIN32 main.cpp)
     set(ICON_LINK_RES "${CMAKE_SOURCE_DIR}/resources/icon.res")
