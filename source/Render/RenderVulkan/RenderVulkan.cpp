@@ -2014,7 +2014,7 @@ public:
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(m_swapChainImages.size()) * m_modelsMeshCount;// *m_model;
+		poolInfo.maxSets = static_cast<uint32_t>(m_swapChainImages.size()) * m_modelsMeshCount * 10;// *m_model;
 
 		if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool))
 			throw std::runtime_error("failed to create descriptor pool!");

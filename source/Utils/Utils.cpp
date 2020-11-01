@@ -4,6 +4,9 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+#else
+#include <sys/time.h>
+#include <sys/resource.h>
 #endif
 
 namespace fs = std::filesystem;
@@ -36,6 +39,13 @@ namespace utils
 
 		return WindowsTickToUnixSeconds(ULARGE_INTEGER{ kernTime.dwLowDateTime, kernTime.dwHighDateTime }.QuadPart)
 			+ WindowsTickToUnixSeconds(ULARGE_INTEGER{ userTime.dwLowDateTime, userTime.dwHighDateTime }.QuadPart);
+	}
+#else
+    unsigned long long getThreadSeconds()
+	{
+		struct rusage usage;
+		getrusage(RUSAGE_THREAD, &usage);
+		return usage.ru_utime.tv_sec + usage.ru_stime.tv_sec;
 	}
 #endif
 
