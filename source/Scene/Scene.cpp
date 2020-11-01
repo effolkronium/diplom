@@ -370,8 +370,6 @@ namespace
 	}
 }
 
-#define M_PI       3.14159265358979323846   // pi
-
 Scene::Scene(IRender& render, RenderGuiData guiData) :
 	m_render{ render }
 {
