@@ -2204,7 +2204,6 @@ public:
 
 	void showFPS()
 	{
-		return;
 		static double lastFpsUpdateTime = 0;
 		static double nbFrames = 0;
 		double delta = m_currentTime - lastFpsUpdateTime;
@@ -2424,7 +2423,7 @@ public:
 		init(std::move(modelInfos));
 
 		std::uint64_t frameCount = 0;
-		auto startTime = utils::getThreadSeconds();
+		auto startTime = glfwGetTime();
 		while (!glfwWindowShouldClose(m_window)) {		
 			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 				break;
@@ -2437,9 +2436,15 @@ public:
 			frameCount++;
 
 			glfwPollEvents();
+
+			auto endSeconds = glfwGetTime();
+			auto renderSeconds = endSeconds - startTime;
+
+			if (renderSeconds > 60)
+				break;
 		}
 
-		auto endTime = utils::getThreadSeconds();
+		auto endTime = glfwGetTime();
 		auto renderTime = endTime - startTime;
 		auto averageFps = frameCount / (double)renderTime;
 

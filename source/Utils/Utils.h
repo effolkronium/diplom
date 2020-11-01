@@ -16,8 +16,6 @@
 
 namespace utils
 {
-    unsigned long long  getThreadSeconds();
-
 	std::string readFile(std::filesystem::path path);
 
     template<typename NumL, typename NumR>

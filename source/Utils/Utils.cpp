@@ -2,53 +2,11 @@
 #include <fstream>
 #include <cassert>
 
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <sys/time.h>
-#include <sys/resource.h>
-#endif
-
 namespace fs = std::filesystem;
 using namespace std::string_literals;
 
-
-namespace
-{
-	#define WINDOWS_TICK 10000000
-	#define SEC_TO_UNIX_EPOCH 11644473600LL
-
-	unsigned long long  WindowsTickToUnixSeconds(long long windowsTicks)
-	{
-		return static_cast<unsigned long long>(windowsTicks / WINDOWS_TICK - SEC_TO_UNIX_EPOCH);
-	}
-}
-
-
 namespace utils
 {
-
-#ifdef _WIN32
-	unsigned long long getThreadSeconds()
-	{
-		FILETIME crTime{}, exTime{}, kernTime{}, userTime{};
-		if (0 == GetThreadTimes(GetCurrentThread(), &crTime, &exTime, &kernTime, &userTime))
-			throw std::runtime_error{ "GetThreadTimes error: "s + std::to_string(GetLastError()) };
-
-
-
-		return WindowsTickToUnixSeconds(ULARGE_INTEGER{ kernTime.dwLowDateTime, kernTime.dwHighDateTime }.QuadPart)
-			+ WindowsTickToUnixSeconds(ULARGE_INTEGER{ userTime.dwLowDateTime, userTime.dwHighDateTime }.QuadPart);
-	}
-#else
-    unsigned long long getThreadSeconds()
-	{
-		struct rusage usage;
-		getrusage(RUSAGE_THREAD, &usage);
-		return usage.ru_utime.tv_sec + usage.ru_stime.tv_sec;
-	}
-#endif
-
 	std::string readFile(std::filesystem::path path)
 	{
 		if (!fs::exists(path))

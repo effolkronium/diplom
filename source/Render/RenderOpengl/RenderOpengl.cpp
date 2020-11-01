@@ -352,7 +352,7 @@ public:
 		ourShader.setInt("material.texture_diffuse1", 0);
 		//ourShader.setInt("material.texture_specular1", 1);
 
-		auto startSeconds = utils::getThreadSeconds();
+		auto startSeconds = glfwGetTime();
 		std::uint64_t frameCount = 0;
         while (!glfwWindowShouldClose(m_window))
         {
@@ -426,12 +426,18 @@ public:
 			glfwSwapBuffers(m_window);
 			frameCount++;
 
+			auto endSeconds = glfwGetTime();
+			auto renderSeconds = endSeconds - startSeconds;
+
+			if (renderSeconds > 60)
+				break;
+
             glfwPollEvents();
         }
-
-		auto endSeconds = utils::getThreadSeconds();
+		
+		auto endSeconds = glfwGetTime();
 		auto renderSeconds = endSeconds - startSeconds;
-		auto averageFps = frameCount / (double)renderSeconds;
+		auto averageFps = frameCount / renderSeconds;
 
 		glfwDestroyWindow(m_window);
 
@@ -440,7 +446,6 @@ public:
 
 	void showFPS()
 	{
-		return;
 		double currentTime = glfwGetTime();
 		static double lastTime = 0;
 		static double nbFrames = 0;
