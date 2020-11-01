@@ -33,28 +33,48 @@ void Shader::use()
 void Shader::setBool(const std::string& name, bool value) const
 {
 	assert(m_programID);
-	glUniform1i(getUniformLocation(name.c_str()), (int)value);
+	try
+	{
+		glUniform1i(getUniformLocation(name.c_str()), (int)value);
+	}
+	catch (...) {}
 }
 
 void Shader::setInt(const std::string& name, int value) const
 {
 	assert(m_programID);
+	try
+	{
 	glUniform1i(getUniformLocation(name.c_str()), value);
+	}
+	catch (...) {}
 }
 void Shader::setFloat(const std::string& name, float value) const
 {
 	assert(m_programID);
+	try
+	{
 	glUniform1f(getUniformLocation(name.c_str()), value);
+	}
+	catch (...) {}
 }
 
 void Shader::setMat4(const std::string& name, const glm::mat4& mat)
 {
+	try
+	{
 	glUniformMatrix4fv(getUniformLocation(name.c_str()), 1, GL_FALSE, glm::value_ptr(mat));
+	}
+	catch (...) {}
 }
 
 void Shader::setVec3(const std::string& name, const glm::vec3& vec)
 {
+	try
+	{
 	glUniform3fv(getUniformLocation(name.c_str()), 1, glm::value_ptr(vec));
+	}
+	catch (...) {}
 }
 
 GLuint Shader::compileShader(const char* source, GLenum shaderType)

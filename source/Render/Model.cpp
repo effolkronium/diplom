@@ -177,6 +177,9 @@ namespace RenderCommon
 
 	void Model::BoneTransform(float TimeInSeconds, std::vector<aiMatrix4x4>& Transforms)
 	{
+		if (m_import->GetScene()->mNumAnimations == 0)
+			return;
+
 		aiMatrix4x4 Identity;
 
 		float TicksPerSecond = (float)(m_import->GetScene()->mAnimations[m_animationNumber]->mTicksPerSecond != 0 ? m_import->GetScene()->mAnimations[m_animationNumber]->mTicksPerSecond : 25.0f);

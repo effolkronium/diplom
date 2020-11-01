@@ -178,6 +178,10 @@ public:
 
 	RenderGuiData renderMainMenu(RenderGuiData result)
 	{
+
+		bool cbSimple = result.simpleScene;
+		bool cbComplex = !result.simpleScene;
+
 		bool cbVulkan = result.renderType == RenderGuiData::RenderType::Vulkan;
 		bool cbOpengl = result.renderType == RenderGuiData::RenderType::OpenGL;
 
@@ -220,6 +224,19 @@ public:
 				cbOpengl = true;
 			}
 
+			ImGui::Button("RENDER SCENE");
+
+			if (ImGui::Checkbox("SIMPLE", &cbSimple))
+			{
+				cbSimple = true;
+				cbComplex = false;
+			}
+
+			if (ImGui::Checkbox("COMPLEX", &cbComplex))
+			{
+				cbSimple = false;
+				cbComplex = true;
+			}
 
 			ImGui::Button("MODEL NUMBER");
 
@@ -235,29 +252,7 @@ public:
 			else if (modelNumber > 500)
 				modelNumber = 500;
 
-			if (ImGui::Checkbox("Hight (500)", &cbHigh) || modelNumber == 500)
-			{
-				cbHigh = true;
-				cbMedium = false;
-				cbLow = false;
-				modelNumber = 500;
-			}
-
-			if (ImGui::Checkbox("Medium (100)", &cbMedium) || modelNumber == 100)
-			{
-				cbHigh = false;
-				cbMedium = true;
-				cbLow = false;
-				modelNumber = 100;
-			}
-
-			if (ImGui::Checkbox("Low (10)", &cbLow) || modelNumber == 10)
-			{
-				cbHigh = false;
-				cbMedium = false;
-				cbLow = true;
-				modelNumber = 10;
-			}
+			
 
 			ImVec2 windowSize = ImGui::GetIO().DisplaySize;
 
@@ -301,6 +296,8 @@ public:
 			result.sceneLoad = RenderGuiData::SceneLoad::Low;
 
 		result.modelNumber = modelNumber;
+
+		result.simpleScene = cbSimple;
 
 		return result;
 	}
@@ -350,7 +347,7 @@ public:
 
 			double res2 = 1/result.averageFps;
 			ImGui::SetCursorPosX(110);
-			ImGui::InputDouble(" ", &res2, 0.0, 0.0, "%.3f");
+			ImGui::InputDouble(" ", &res2, 0.0, 0.0, "%.5f");
 
 			ImGui::BeginChild(63212341, { 50, 15 });
 			ImGui::EndChild();

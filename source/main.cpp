@@ -102,6 +102,7 @@ try {
 }
 catch (const std::exception& ex)
 {
+	auto wtf = ex.what();
 	std::cerr << "Main exception: " << ex.what() << std::endl;
 	std::cin.get();
 }

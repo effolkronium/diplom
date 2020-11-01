@@ -368,23 +368,31 @@ namespace
 	{
 		return getModelInfos()[type];
 	}
+
+	ModelInfo getSimpleCubeModelInfo()
+	{
+		ModelInfo modelInfo;
+
+		modelInfo.modelPath = "resources/cube.obj";
+		modelInfo.texturePath = "resources/container.jpg";
+		modelInfo.simpleModel = true;
+
+		return modelInfo;
+	}
 }
 
 Scene::Scene(IRender& render, RenderGuiData guiData) :
 	m_render{ render }
 {
-
-	auto modelInfo = getModelInfo(ModelType::Pony);
-
 	std::vector<int> currModelNum;
 
 	int modelNumber = guiData.modelNumber;
 	while (modelNumber)
 	{
-		if (modelNumber >= 10)
+		if (modelNumber >= 12)
 		{
-			currModelNum.push_back(10);
-			modelNumber -= 10;
+			currModelNum.push_back(12);
+			modelNumber -= 12;
 		}
 		else
 		{
@@ -393,18 +401,30 @@ Scene::Scene(IRender& render, RenderGuiData guiData) :
 		}
 	}
 
-	for (int j = 0; j < 10; ++j)
+	for (int j = 0; j < 12; ++j)
 	{
 		for (int i = 0;  j < currModelNum.size() && i < currModelNum[j]; ++i)
 		{
-			auto modelInfo = getModelInfo(ModelType(fixedRundom[(i + 1) * (j + 1)]));
+			ModelInfo modelInfo{};
+			if (guiData.simpleScene)
+			{
+				modelInfo = getSimpleCubeModelInfo();
+				modelInfo.simpleModel = true;
+			}
+			else
+			{
+				modelInfo = getModelInfo(ModelType(fixedRundom[(i + 1) * (j + 1)]));
+				modelInfo.simpleModel = false;
+			}
 
-			int yOffset = i / 5;
+			int yOffset = i / 4;
 
 			modelInfo.posY += yOffset * 4;
-			modelInfo.posX += (i - (yOffset * 5)) * (i % 2 == 0 ? 4 : 2);
-			modelInfo.posZ -= j * 4;
-			modelInfo.animationNumber = ((i + 1) * (j + 1)) % modelInfo.maxAnimationNumber;
+			modelInfo.posX += (i - (yOffset * 4)) * (i % 2 == 0 ? 5 : 5);
+			modelInfo.posZ -= j * 6;
+
+			if(modelInfo.maxAnimationNumber)
+				modelInfo.animationNumber = ((i + 1) * (j + 1)) % modelInfo.maxAnimationNumber;
 
 			m_modelInfos.push_back(modelInfo);
 		}

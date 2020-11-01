@@ -15,8 +15,8 @@ enum class Camera_Movement {
 };
 
 // Default camera values
-inline constexpr float YAW = -90.0f;
-inline constexpr float PITCH = 0.0f;
+inline constexpr float YAW = -89.3f;
+inline constexpr float PITCH = 8.7f;
 inline constexpr float SPEED = 2.5f;
 inline constexpr float SENSITIVITY = 0.1f;
 inline constexpr float ZOOM = 45.0f;
@@ -79,7 +79,7 @@ public:
             Position += Right * velocity;
 
 
-        //std::cout << glm::to_string(Position) << std::endl;
+       // std::cout << glm::to_string(Position) << std::endl;
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -99,6 +99,8 @@ public:
             if (Pitch < -89.0f)
                 Pitch = -89.0f;
         }
+
+    //    std::cout << "YAW: " << Yaw << " : PITCH: " << Pitch << std::endl;
 
         // update Front, Right and Up Vectors using the updated Euler angles
         updateCameraVectors();

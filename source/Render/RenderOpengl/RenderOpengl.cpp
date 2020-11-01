@@ -106,9 +106,11 @@ public:
 
 		glm::vec3 position{};
 		glm::vec3 scale{};
+
+		ModelInfo info{};
 	};
 public:
-	Camera camera{ glm::vec3(6.886569, 2.976195, 14.256577) }; 
+	Camera camera{ glm::vec3(8.207467, 2.819616, 18.021290) };
 
 	std::vector<OpenglModel> m_models;
 
@@ -206,6 +208,8 @@ public:
 		for (auto& modelInfo : modelInfos)
 		{
 			OpenglModel model1;
+
+			model1.info = modelInfo;
 
 			model1.model = std::make_unique<RenderCommon::Model>(modelInfo.modelPath,
 				RenderCommon::Model::Textures{
@@ -336,9 +340,12 @@ public:
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
-		glClearColor(1.f, 1.f, 1.f, 1.0f);
+		glClearColor(135 / 255.f, 206 / 255.f, 235 / 255.f, 1.0f);
 
+		Shader ourShaderSimple(s_shader_v_simple, s_shader_f_simple);
 		Shader ourShader(s_shader_v, s_shader_f);
+
+		Shader* currentShader = &ourShader;
 
 		ourShader.use();
 		ourShader.setInt("material.texture_diffuse1", 0);
@@ -355,8 +362,6 @@ public:
 			showFPS();
 			processInput();
 
-			ourShader.use();
-
 			auto currentTime = glfwGetTime();
 
 			glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)1280 / (float)720, 0.1f, 100.0f);
@@ -364,19 +369,30 @@ public:
 
 			for (auto& model : m_models)
 			{
+				if (model.info.simpleModel)
+					currentShader = &ourShaderSimple;
+				else
+					currentShader = &ourShader;
+
+				currentShader->use();
+
 				glm::mat4 modelMat = glm::mat4(1.0f);
 				modelMat = glm::translate(modelMat, model.position);
 				modelMat = glm::scale(modelMat, model.scale);
-				//model = glm::rotate(model, glm::radians(180.f), glm::vec3(1.0f, 2.5f, 0.f));
 
-				ourShader.setMat4("model", modelMat);
-				ourShader.setMat4("PVM", projection * view * modelMat);
+				if (model.info.simpleModel)
+					modelMat = glm::rotate(modelMat, (float)currentTime, glm::vec3(0.5f, 1.0f, 0.0f));
+
+				currentShader->setMat4("model", modelMat);
+				currentShader->setMat4("PVM", projection * view * modelMat);
 
 				std::vector<aiMatrix4x4> Transforms;
 				model.model->BoneTransform(currentTime, Transforms);
 
+				
+				if (!model.info.simpleModel)
 				for (int i = 0; i < Transforms.size(); i++) {
-					ourShader.setMat4("gBones["s + std::to_string(i) + "]", RenderCommon::Assimp2Glm(Transforms[i]));
+					currentShader->setMat4("gBones["s + std::to_string(i) + "]", RenderCommon::Assimp2Glm(Transforms[i]));
 				}
 
 				auto findIt = model.textures.find(RenderCommon::Texture::Type::diffuse);
@@ -463,12 +479,6 @@ public:
 			glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		else
 			glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-	}
-
-	void clear()
-	{
-		glClearColor(1.f, 1.f, 1.f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 private:
 	GLFWwindow* m_window;

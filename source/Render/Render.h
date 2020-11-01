@@ -19,6 +19,8 @@ struct RenderGuiData
 	int modelNumber = 10;
 
 	double averageFps = -1;
+
+	bool simpleScene = false;
 };
 
 struct ModelInfo
@@ -31,6 +33,8 @@ struct ModelInfo
 
 	int animationNumber = 0;
 	int maxAnimationNumber = 0;
+
+	bool simpleModel = true;
 };
 
 

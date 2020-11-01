@@ -318,6 +318,8 @@ public:
 
 		std::vector<PushConstantBufferObject> pushConstant{};
 		std::vector<UniformBufferObject> uniformBuffer{};
+
+		ModelInfo info{};
 	};
 
 	struct ThreadData {
@@ -370,6 +372,7 @@ public:
 	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
 	VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
+	VkPipeline m_graphicsPipelineSimple = VK_NULL_HANDLE;
 
 	std::vector<VkFramebuffer> m_swapChainFramebuffers;
 
@@ -397,7 +400,7 @@ public:
 	int m_framebufferWidth = g_WIDTH;
 	int m_framebufferHeight = g_HEIGHT;
 
-	Camera camera{ glm::vec3(6.886569, 2.976195, 14.256577) };
+	Camera camera{ glm::vec3(8.207467, 2.819616, 18.021290) };
 
 	double m_deltaTime{};
 	double m_currentTime{};
@@ -619,6 +622,8 @@ public:
 		for (auto& modelInfo : modelInfos)
 		{
 			VulkanModel model1;
+
+			model1.info = modelInfo;
 
 			model1.model = std::make_unique<RenderCommon::Model>(modelInfo.modelPath,
 				RenderCommon::Model::Textures{
@@ -1270,6 +1275,24 @@ public:
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
+
+		unique_ptr_shared_module vertShaderModuleSimple{ createShaderModule(s_shader_simple_vert), m_shaderModuleDeleter };
+		unique_ptr_shared_module fragShaderModuleSimple{ createShaderModule(s_shader_simple_frag), m_shaderModuleDeleter };
+
+		VkPipelineShaderStageCreateInfo vertShaderStageInfoSimple{};
+		vertShaderStageInfoSimple.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		vertShaderStageInfoSimple.stage = VK_SHADER_STAGE_VERTEX_BIT;
+		vertShaderStageInfoSimple.module = vertShaderModuleSimple.get();
+		vertShaderStageInfoSimple.pName = "main";
+
+		VkPipelineShaderStageCreateInfo fragShaderStageInfoSimple{};
+		fragShaderStageInfoSimple.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		fragShaderStageInfoSimple.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		fragShaderStageInfoSimple.module = fragShaderModuleSimple.get();
+		fragShaderStageInfoSimple.pName = "main";
+
+		VkPipelineShaderStageCreateInfo shaderStagesSimple[] = { vertShaderStageInfoSimple, fragShaderStageInfoSimple };
+
 		
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
 
@@ -1398,6 +1421,11 @@ public:
 		pipelineInfo.basePipelineIndex = -1; // Optional
 
 		if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipeline))
+			throw std::runtime_error("failed to create graphics pipeline!");
+
+		pipelineInfo.pStages = shaderStagesSimple;
+
+		if (vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_graphicsPipelineSimple))
 			throw std::runtime_error("failed to create graphics pipeline!");
 	}
 
@@ -2149,57 +2177,6 @@ public:
 
 		if (vkAllocateCommandBuffers(m_device, &allocInfo, m_commandBuffers.data()))
 			throw std::runtime_error("failed to allocate command buffers!");
-
-		for (size_t i = 0; i < m_commandBuffers.size(); i++) {
-			VkCommandBufferBeginInfo beginInfo{};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = 0; // Optional
-			beginInfo.pInheritanceInfo = nullptr; // Optional
-
-			if (vkBeginCommandBuffer(m_commandBuffers[i], &beginInfo))
-				throw std::runtime_error("failed to begin recording command buffer!");
-
-			VkRenderPassBeginInfo renderPassInfo{};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassInfo.renderPass = m_renderPass;
-			renderPassInfo.framebuffer = m_swapChainFramebuffers[i];
-			renderPassInfo.renderArea.offset = { 0, 0 };
-			renderPassInfo.renderArea.extent = m_swapChainExtent;
-
-			std::array<VkClearValue, 2> clearValues{};
-			clearValues[0].color = { 0.2f, 0.3f, 0.3f, 1.0f };
-			clearValues[1].depthStencil = { 1.0f, 0 };
-
-			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			renderPassInfo.pClearValues = clearValues.data();
-
-			vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-			vkCmdBindPipeline(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
-
-
-			for (auto& model : m_models)
-			{
-				for (size_t j = 0; j < model.model->meshes.size(); ++j)
-				{
-					VkBuffer vertexBuffers[] = { model.meshVertexBuffers[j].m_vertexBuffer.get() };
-					VkDeviceSize offsets[] = { 0 };
-
-					vkCmdBindVertexBuffers(m_commandBuffers[i], 0, 1, vertexBuffers, offsets);
-					vkCmdBindIndexBuffer(m_commandBuffers[i], model.meshVertexBuffers[j].m_vertexBuffer.get(),
-										sizeof(model.model->meshes[j].m_vertices[0]) * model.model->meshes[j].m_vertices.size(), VK_INDEX_TYPE_UINT32);
-
-					vkCmdBindDescriptorSets(m_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &model.meshDescriptorSet[i], 0, nullptr);
-
-					vkCmdDrawIndexed(m_commandBuffers[i], utils::intCast<uint32_t>(model.model->meshes[j].m_indices.size()), 1, 0, 0, 0);
-				}
-			}
-
-			vkCmdEndRenderPass(m_commandBuffers[i]);
-
-			if (vkEndCommandBuffer(m_commandBuffers[i]))
-				throw std::runtime_error("failed to record command buffer!");
-		}
 	}
 
 	void createSyncObjects() {
@@ -2287,12 +2264,13 @@ public:
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 proj = glm::perspective(glm::radians(45.f), m_framebufferWidth / static_cast<float>(m_framebufferHeight), 0.1f, 200.f);
 
-		// Fix opengl. TODO!!!!!!!!!!!!!!!!! REMOVE ?????
 		proj[1][1] *= -1;
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, vulkanModel.position);
 		model = glm::scale(model, vulkanModel.scale);
-	//	model = glm::rotate(model, static_cast<float>(m_currentTime), glm::vec3(1.0f, 0.3f, 0.5f));
+
+		if(vulkanModel.info.simpleModel)
+			model = glm::rotate(model, (float)m_currentTime, glm::vec3(0.5f, 1.0f, 0.0f));
 
 		glm::mat4 PVM = proj * view * model;
 
@@ -2357,7 +2335,10 @@ public:
 				if (vkBeginCommandBuffer(commandBuffer.get(), &beginInfo))
 					throw std::runtime_error("failed to begin recording command buffer!");
 
-				vkCmdBindPipeline(commandBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
+				if(vulkanModel->info.simpleModel)
+					vkCmdBindPipeline(commandBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipelineSimple);
+				else
+					vkCmdBindPipeline(commandBuffer.get(), VK_PIPELINE_BIND_POINT_GRAPHICS, m_graphicsPipeline);
 
 				if (updateModelPushConstants(currentImage, *vulkanModel))
 					vkCmdPushConstants(commandBuffer.get(), m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstantBufferObject), &vulkanModel->pushConstant[currentImage]);
@@ -2413,7 +2394,7 @@ public:
 		updateSecondaryCommandBuffers(currentImage);
 
 		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = VkClearColorValue{ 1.0f, 1.0f, 1.0f, 1.0f };
+		clearValues[0].color = VkClearColorValue{ 135 / 255.f, 206 / 255.f, 235 / 255.f };
 		clearValues[1].depthStencil = { 1.0f, 0 };
 
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
