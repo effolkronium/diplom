@@ -2204,6 +2204,7 @@ public:
 
 	void showFPS()
 	{
+		return;
 		static double lastFpsUpdateTime = 0;
 		static double nbFrames = 0;
 		double delta = m_currentTime - lastFpsUpdateTime;
@@ -2221,7 +2222,7 @@ public:
 
 	void updateDeltaTime()
 	{
-		m_currentTime = (double)utils::getThreadSeconds();
+		m_currentTime = glfwGetTime();
 		m_deltaTime = m_currentTime - m_lastTime;
 		m_lastTime = m_currentTime;
 	}
