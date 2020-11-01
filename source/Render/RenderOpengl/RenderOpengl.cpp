@@ -21,6 +21,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include <glm/gtc/type_ptr.hpp>
+#include <Utils.h>
 
 using namespace std::literals;
 
@@ -351,7 +352,7 @@ public:
 		ourShader.setInt("material.texture_diffuse1", 0);
 		//ourShader.setInt("material.texture_specular1", 1);
 
-		auto startSeconds = glfwGetTime();
+		auto startSeconds = utils::getThreadSeconds();
 		std::uint64_t frameCount = 0;
         while (!glfwWindowShouldClose(m_window))
         {
@@ -428,9 +429,9 @@ public:
             glfwPollEvents();
         }
 
-		auto endSeconds = glfwGetTime();
+		auto endSeconds = utils::getThreadSeconds();
 		auto renderSeconds = endSeconds - startSeconds;
-		auto averageFps = frameCount / renderSeconds;
+		auto averageFps = frameCount / (double)renderSeconds;
 
 		glfwDestroyWindow(m_window);
 

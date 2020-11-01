@@ -2423,7 +2423,7 @@ public:
 		init(std::move(modelInfos));
 
 		std::uint64_t frameCount = 0;
-		double startTime = glfwGetTime();
+		auto startTime = utils::getThreadSeconds();
 		while (!glfwWindowShouldClose(m_window)) {		
 			if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 				break;
@@ -2438,11 +2438,9 @@ public:
 			glfwPollEvents();
 		}
 
-		double endTime = glfwGetTime();
-
-		double renderTime = endTime - startTime;
-
-		double averageFps = frameCount / renderTime;
+		auto endTime = utils::getThreadSeconds();
+		auto renderTime = endTime - startTime;
+		auto averageFps = frameCount / (double)renderTime;
 
 		vkDeviceWaitIdle(m_device);
 
