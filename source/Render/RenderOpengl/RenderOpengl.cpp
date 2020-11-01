@@ -158,8 +158,6 @@ public:
 
 		glfwMakeContextCurrent(m_window);
 
-		glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
 		glfwSwapInterval(0);
 
 		glfwSetWindowUserPointer(m_window, this);
@@ -191,7 +189,13 @@ public:
 			lastX = xpos;
 			lastY = ypos;
 
-			_this->camera.ProcessMouseMovement(xoffset, yoffset);
+			if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			else
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+			if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+				_this->camera.ProcessMouseMovement(xoffset, yoffset);
 		});
 	}
 
@@ -453,6 +457,12 @@ public:
 			camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
 		if (glfwGetKey(m_window, GLFW_KEY_D) == GLFW_PRESS)
 			camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
+
+
+		if (glfwGetKey(m_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		else
+			glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	}
 
 	void clear()

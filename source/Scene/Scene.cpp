@@ -378,9 +378,26 @@ Scene::Scene(IRender& render, RenderGuiData guiData) :
 
 	auto modelInfo = getModelInfo(ModelType::Pony);
 
+	std::vector<int> currModelNum;
+
+	int modelNumber = guiData.modelNumber;
+	while (modelNumber)
+	{
+		if (modelNumber >= 10)
+		{
+			currModelNum.push_back(10);
+			modelNumber -= 10;
+		}
+		else
+		{
+			currModelNum.push_back(modelNumber);
+			break;
+		}
+	}
+
 	for (int j = 0; j < 10; ++j)
 	{
-		for (int i = 0; i < guiData.modelNumber / 10; ++i)
+		for (int i = 0;  j < currModelNum.size() && i < currModelNum[j]; ++i)
 		{
 			auto modelInfo = getModelInfo(ModelType(fixedRundom[(i + 1) * (j + 1)]));
 
