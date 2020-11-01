@@ -690,7 +690,7 @@ public:
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-		m_window = glfwCreateWindow(m_framebufferWidth, m_framebufferHeight, "Window Title", NULL, NULL);
+		m_window = glfwCreateWindow(m_framebufferWidth, m_framebufferHeight, "Vulkan", NULL, NULL);
 		glfwSetWindowUserPointer(m_window, this);
 		glfwSetWindowCenter(m_window);
 

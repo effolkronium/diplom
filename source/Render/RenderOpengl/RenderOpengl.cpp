@@ -155,7 +155,7 @@ public:
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 		glfwWindowHint(GLFW_SAMPLES, 8);
-		m_window = glfwCreateWindow(1280, 720, " ", NULL, NULL);
+		m_window = glfwCreateWindow(1280, 720, "OpenGL", NULL, NULL);
 		if (!m_window)
 			throw std::runtime_error{ "glfwCreateWindow has failed" };
 

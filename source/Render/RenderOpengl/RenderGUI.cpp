@@ -240,7 +240,7 @@ public:
 
 			ImGui::Button("MODEL NUMBER");
 
-			if (ImGui::InputInt("1-500", &modelNumber, 10, 500))
+			if (ImGui::InputInt("1-512", &modelNumber, 10, 512))
 			{
 				cbHigh = false;
 				cbMedium = false;
@@ -249,8 +249,8 @@ public:
 
 			if (modelNumber < 1)
 				modelNumber = 1;
-			else if (modelNumber > 500)
-				modelNumber = 500;
+			else if (modelNumber > 512)
+				modelNumber = 512;
 
 			
 
