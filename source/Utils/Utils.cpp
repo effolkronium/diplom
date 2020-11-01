@@ -6,6 +6,7 @@
 #include <Windows.h>
 #else
 #include <sys/time.h>
+#include <sys/times.h>
 #include <sys/resource.h>
 #endif
 
@@ -43,9 +44,7 @@ namespace utils
 #else
     unsigned long long getThreadSeconds()
 	{
-		struct rusage usage;
-		getrusage(RUSAGE_THREAD, &usage);
-		return usage.ru_utime.tv_sec + usage.ru_stime.tv_sec;
+		
 	}
 #endif
 

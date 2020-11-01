@@ -363,7 +363,7 @@ public:
 			showFPS();
 			processInput();
 
-			auto currentTime = glfwGetTime();
+			auto currentTime = (double)utils::getThreadSeconds();
 
 			glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)1280 / (float)720, 0.1f, 100.0f);
 			glm::mat4 view = camera.GetViewMatrix();
@@ -440,7 +440,7 @@ public:
 
 	void showFPS()
 	{
-		double currentTime = glfwGetTime();
+		double currentTime = (double)utils::getThreadSeconds();
 		static double lastTime = 0;
 		static double nbFrames = 0;
 		double delta = currentTime - lastTime;
@@ -462,7 +462,7 @@ public:
 		static float deltaTime = 0.0f;	// Time between current frame and last frame
 		static float lastFrame = 0.0f; // Time of last frame
 
-		float currentFrame = glfwGetTime();
+		float currentFrame = (double)utils::getThreadSeconds();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 

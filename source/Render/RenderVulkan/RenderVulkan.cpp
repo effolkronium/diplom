@@ -2221,7 +2221,7 @@ public:
 
 	void updateDeltaTime()
 	{
-		m_currentTime = glfwGetTime();
+		m_currentTime = (double)utils::getThreadSeconds();
 		m_deltaTime = m_currentTime - m_lastTime;
 		m_lastTime = m_currentTime;
 	}
