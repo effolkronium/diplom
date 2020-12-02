@@ -2004,17 +2004,22 @@ public:
 	}
 
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(m_swapChainImages.size());
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(m_swapChainImages.size());
+		std::vector<VkDescriptorPoolSize> poolSizes{};
+		poolSizes.resize(1000);
+		for (int i = 0; i < 500; ++i)
+		{
+			poolSizes[i].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSizes[i].descriptorCount = static_cast<uint32_t>(m_swapChainImages.size()) * 1000;
+			poolSizes[++i].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			poolSizes[i].descriptorCount = static_cast<uint32_t>(m_swapChainImages.size()) * 1000;
+		}
+
 
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(m_swapChainImages.size()) * m_modelsMeshCount * 10;// *m_model;
+		poolInfo.maxSets = static_cast<uint32_t>(m_swapChainImages.size()) * m_modelsMeshCount * 1000;// *m_model;
 
 		if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool))
 			throw std::runtime_error("failed to create descriptor pool!");
